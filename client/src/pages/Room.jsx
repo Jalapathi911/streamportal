@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { apiFetch } from '../utils/api.js';
 import socket from '../utils/socket.js';
 import SenderView from '../components/SenderView.jsx';
 import ReceiverView from '../components/ReceiverView.jsx';
@@ -12,7 +13,7 @@ export default function Room() {
   const [roleError, setRoleError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/rooms/${roomId}`)
+    apiFetch(`/api/rooms/${roomId}`)
       .then((res) => {
         if (!res.ok) { setNotFound(true); return null; }
         return res.json();

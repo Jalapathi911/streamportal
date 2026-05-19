@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiFetch } from '../utils/api.js';
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
@@ -38,7 +39,7 @@ export default function Dashboard() {
   }
 
   async function fetchRooms() {
-    const res = await fetch('/api/rooms', {
+    const res = await apiFetch('/api/rooms', {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.status === 401) { navigate('/login'); return; }
@@ -49,7 +50,7 @@ export default function Dashboard() {
     e.preventDefault();
     if (!roomName.trim()) return;
     setLoading(true);
-    const res = await fetch('/api/rooms', {
+    const res = await apiFetch('/api/rooms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ name: roomName }),
