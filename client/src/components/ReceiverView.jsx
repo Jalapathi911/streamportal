@@ -203,9 +203,6 @@ export default function ReceiverView({ roomId }) {
         <>
           <div className="mt-3 mb-4 space-y-1 text-center">
             <ConnectionBadge state={connectionState} />
-            {slowWarning && (
-              <p className="text-yellow-400 text-xs">Connection is slow — may need TURN relay</p>
-            )}
           </div>
 
           <div className="w-full max-w-xs bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 space-y-4">

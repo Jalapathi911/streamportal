@@ -169,11 +169,8 @@ export default function SenderView({ roomId }) {
             </div>
           )}
         </div>
-        <div className="mt-3 space-y-1">
+        <div className="mt-3">
           <ConnectionBadge state={connectionState} />
-          {slowWarning && (
-            <p className="text-yellow-400 text-xs">Connection is slow — may need TURN relay</p>
-          )}
         </div>
       </div>
 

@@ -1,181 +1,148 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import AgoraRTC from 'agora-rtc-sdk-ng';
+import { apiFetch } from '../utils/api.js';
 import socket from '../utils/socket.js';
 
-const ICE_SERVERS = [
-  { urls: import.meta.env.VITE_STUN_URL || 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  ...(import.meta.env.VITE_TURN_URL
-    ? [{
-        urls: import.meta.env.VITE_TURN_URL,
-        username: import.meta.env.VITE_TURN_USERNAME,
-        credential: import.meta.env.VITE_TURN_CREDENTIAL,
-      }]
-    : []),
-];
+AgoraRTC.setLogLevel(4); // suppress verbose SDK logs in production
 
-// Inject bandwidth cap into SDP (2500kbps for video)
-function capVideoBandwidth(sdp) {
-  return sdp.replace(/a=mid:video\r\n/g, 'a=mid:video\r\nb=AS:2500\r\n');
-}
-
+// Exported as useWebRTC to avoid touching SenderView/ReceiverView imports
 export function useWebRTC({ role, roomId, localStream }) {
-  const pcRef = useRef(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [connectionState, setConnectionState] = useState('new');
-  const [iceGatheringState, setIceGatheringState] = useState('new');
-  const [slowWarning, setSlowWarning] = useState(false);
-  const slowTimerRef = useRef(null);
+  const clientRef        = useRef(null);
+  const videoTrackRef    = useRef(null);
+  const audioTrackRef    = useRef(null);
+  const joinedRef        = useRef(false);
+  const localStreamRef   = useRef(localStream);
 
-  const createPC = useCallback(() => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+  const [remoteStream,     setRemoteStream]     = useState(null);
+  const [connectionState,  setConnectionState]  = useState('disconnected');
 
-    pc.onconnectionstatechange = () => {
-      setConnectionState(pc.connectionState);
-      if (pc.connectionState === 'connected') {
-        clearTimeout(slowTimerRef.current);
-        setSlowWarning(false);
+  // Keep localStreamRef current so the join effect can read it without re-running
+  useEffect(() => { localStreamRef.current = localStream; }, [localStream]);
+
+  // ── Join Agora channel once per mount ──────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function publishStream(client, stream) {
+      if (!stream) return;
+      const videoMSTrack = stream.getVideoTracks()[0];
+      const audioMSTrack = stream.getAudioTracks()[0];
+
+      if (videoMSTrack) {
+        const vt = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoMSTrack, frameRate: 30 });
+        videoTrackRef.current = vt;
+        await client.publish(vt);
       }
-    };
-
-    pc.onicegatheringstatechange = () => {
-      setIceGatheringState(pc.iceGatheringState);
-    };
-
-    pc.onicecandidate = ({ candidate }) => {
-      if (candidate) {
-        socket.emit('ice-candidate', { roomId, candidate });
+      if (audioMSTrack) {
+        const at = AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioMSTrack });
+        audioTrackRef.current = at;
+        await client.publish(at);
       }
-    };
-
-    if (role === 'receiver') {
-      const stream = new MediaStream();
-      setRemoteStream(stream);
-      pc.ontrack = ({ track }) => {
-        stream.addTrack(track);
-        setRemoteStream(new MediaStream(stream.getTracks()));
-      };
     }
 
-    return pc;
-  }, [role, roomId]);
+    async function init() {
+      const res = await apiFetch(`/api/agora-token?channel=${encodeURIComponent(roomId)}&role=${role}`);
+      if (!res.ok || cancelled) return;
+      const { token, appId } = await res.json();
+      if (cancelled) return;
 
-  useEffect(() => {
-    const pc = createPC();
-    pcRef.current = pc;
+      const client = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
+      clientRef.current = client;
 
-    if (role === 'sender' && localStream) {
-      localStream.getTracks().forEach((track) => {
-        pc.addTrack(track, localStream);
+      client.on('connection-state-change', (curState) => {
+        setConnectionState(curState.toLowerCase());
       });
-    }
 
-    // Warn if ICE takes >10 seconds
-    slowTimerRef.current = setTimeout(() => {
-      if (pc.connectionState !== 'connected') {
-        setSlowWarning(true);
-      }
-    }, 10000);
-
-    const handlePeerJoined = async () => {
-      if (role === 'sender') {
-        const offer = await pc.createOffer();
-        // Apply H264 preference and bandwidth cap
-        const modifiedSdp = capVideoBandwidth(offer.sdp);
-        const modifiedOffer = { type: offer.type, sdp: modifiedSdp };
-        await pc.setLocalDescription(modifiedOffer);
-        socket.emit('offer', { roomId, sdp: modifiedOffer });
-      }
-    };
-
-    const handleOffer = async ({ sdp }) => {
       if (role === 'receiver') {
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        socket.emit('answer', { roomId, sdp: answer });
-      }
-    };
-
-    const handleAnswer = async ({ sdp }) => {
-      if (role === 'sender') {
-        await pc.setRemoteDescription(new RTCSessionDescription(sdp));
-      }
-    };
-
-    const handleIceCandidate = async ({ candidate }) => {
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch {
-        // ignore stale candidates
-      }
-    };
-
-    socket.on('peer-joined', handlePeerJoined);
-    socket.on('offer', handleOffer);
-    socket.on('answer', handleAnswer);
-    socket.on('ice-candidate', handleIceCandidate);
-
-    return () => {
-      clearTimeout(slowTimerRef.current);
-      socket.off('peer-joined', handlePeerJoined);
-      socket.off('offer', handleOffer);
-      socket.off('answer', handleAnswer);
-      socket.off('ice-candidate', handleIceCandidate);
-      pc.close();
-    };
-  }, [role, roomId, localStream, createPC]);
-
-  // Poll WebRTC stats every 5s — report bytes delta + relay type to server
-  useEffect(() => {
-    let lastBytes = 0;
-    const interval = setInterval(async () => {
-      const pc = pcRef.current;
-      if (!pc || pc.connectionState !== 'connected') return;
-
-      try {
-        const stats = await pc.getStats();
-        let totalBytes = 0;
-        let isRelay = false;
-
-        stats.forEach((r) => {
-          if (r.type === 'transport') {
-            totalBytes += (r.bytesSent || 0) + (r.bytesReceived || 0);
+        client.on('user-published', async (user, mediaType) => {
+          await client.subscribe(user, mediaType);
+          if (mediaType === 'video') {
+            setRemoteStream(new MediaStream([user.videoTrack.getMediaStreamTrack()]));
           }
-          if (r.type === 'candidate-pair' && r.nominated) {
-            isRelay = r.remoteCandidateId
-              ? [...stats.values()].find(
-                  (s) => s.id === r.localCandidateId && s.candidateType === 'relay'
-                ) !== undefined
-              : false;
+          if (mediaType === 'audio') {
+            user.audioTrack.play();
           }
         });
-
-        const delta = totalBytes - lastBytes;
-        if (delta > 0) {
-          socket.emit('webrtc-stats', { roomId, deltaBytes: delta });
-          lastBytes = totalBytes;
-        }
-      } catch {
-        // stats not available yet
+        client.on('user-unpublished', (_, mediaType) => {
+          if (mediaType === 'video') setRemoteStream(null);
+        });
       }
-    }, 5000);
 
+      const agoraRole = role === 'sender' ? 'host' : 'audience';
+      const opts      = role === 'receiver' ? { level: 1 } : undefined; // low-latency audience
+      await client.setClientRole(agoraRole, opts);
+      await client.join(appId, roomId, token || null, null);
+      joinedRef.current = true;
+
+      // Publish whatever stream is available at join time
+      if (role === 'sender') await publishStream(client, localStreamRef.current);
+    }
+
+    init().catch(console.error);
+
+    return () => {
+      cancelled = true;
+      videoTrackRef.current?.close();
+      audioTrackRef.current?.close();
+      clientRef.current?.leave();
+      joinedRef.current = false;
+    };
+  }, [role, roomId]); // intentional: localStream changes handled below
+
+  // ── Replace published tracks when localStream changes (sender only) ────────
+  useEffect(() => {
+    if (role !== 'sender' || !localStream || !joinedRef.current) return;
+    const client = clientRef.current;
+    if (!client || client.connectionState !== 'CONNECTED') return;
+
+    async function replaceStream() {
+      const videoMSTrack = localStream.getVideoTracks()[0];
+      const audioMSTrack = localStream.getAudioTracks()[0];
+
+      if (videoTrackRef.current) {
+        await client.unpublish(videoTrackRef.current);
+        videoTrackRef.current.close();
+        videoTrackRef.current = null;
+      }
+      if (audioTrackRef.current) {
+        await client.unpublish(audioTrackRef.current);
+        audioTrackRef.current.close();
+        audioTrackRef.current = null;
+      }
+
+      if (videoMSTrack) {
+        const vt = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoMSTrack, frameRate: 30 });
+        videoTrackRef.current = vt;
+        await client.publish(vt);
+      }
+      if (audioMSTrack) {
+        const at = AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioMSTrack });
+        audioTrackRef.current = at;
+        await client.publish(at);
+      }
+    }
+
+    replaceStream().catch(console.error);
+  }, [localStream, role]);
+
+  // ── Approximate bandwidth tracking for dashboard ───────────────────────────
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const client = clientRef.current;
+      if (!client || client.connectionState !== 'CONNECTED') return;
+      const stats = client.getRTCStats();
+      // SendBitrate + RecvBitrate are in bps; sample every 5s → bytes
+      const deltaBytes = Math.round(((stats.SendBitrate || 0) + (stats.RecvBitrate || 0)) * 5 / 8);
+      if (deltaBytes > 0) socket.emit('webrtc-stats', { roomId, deltaBytes });
+    }, 5000);
     return () => clearInterval(interval);
   }, [roomId]);
 
-  const replaceTrack = useCallback((newTrack, kind) => {
-    const pc = pcRef.current;
-    if (!pc) return;
-    const sender = pc.getSenders().find((s) => s.track && s.track.kind === kind);
-    if (sender) sender.replaceTrack(newTrack);
-  }, []);
-
   return {
-    peerConnection: pcRef.current,
     remoteStream,
     connectionState,
-    iceGatheringState,
-    slowWarning,
-    replaceTrack,
+    iceGatheringState: connectionState, // compat alias for DebugOverlay
+    slowWarning: false,                 // not applicable with Agora
+    replaceTrack: () => {},             // no-op — track replacement via localStream effect
   };
 }

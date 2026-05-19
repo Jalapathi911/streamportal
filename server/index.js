@@ -7,6 +7,13 @@ const authRouter = require('./auth');
 const verifyToken = require('./middleware/verifyToken');
 const { createRoom, getRooms, getRoom, deleteRoom, updateRoom } = require('./roomManager');
 
+let RtcTokenBuilder, RtcRole;
+try {
+  ({ RtcTokenBuilder, RtcRole } = require('agora-token'));
+} catch {
+  console.warn('[agora] agora-token package not installed — token endpoint disabled');
+}
+
 const app = express();
 const server = http.createServer(app);
 
@@ -27,6 +34,26 @@ app.get('/api/health', (req, res) => {
 
 // Auth routes
 app.use('/api', authRouter);
+
+// Agora token — channel=roomId, role=sender|receiver
+app.get('/api/agora-token', (req, res) => {
+  const appId = process.env.AGORA_APP_ID;
+  const certificate = process.env.AGORA_APP_CERTIFICATE;
+
+  if (!appId) return res.status(503).json({ error: 'AGORA_APP_ID not configured on server' });
+
+  // Without a certificate, return null token (works when Auth Mode = "No Auth" in Agora console)
+  if (!certificate || !RtcTokenBuilder) {
+    return res.json({ token: null, appId });
+  }
+
+  const { channel = '', role = 'receiver' } = req.query;
+  const expire = 86400; // 24 hours in seconds
+  const agoraRole = role === 'sender' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+  const token = RtcTokenBuilder.buildTokenWithUid(appId, certificate, channel, 0, agoraRole, expire, expire);
+
+  res.json({ token, appId });
+});
 
 // Room routes (protected)
 app.post('/api/rooms', verifyToken, (req, res) => {
@@ -54,25 +81,25 @@ app.delete('/api/rooms/:id', verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
-// Signaling: per-room socket IDs { roomId: { sender: socketId, receiver: socketId } }
+// Room presence tracking (no WebRTC signaling — Agora handles media)
 const roomSockets = {};
 
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
 
+  // Approximate bandwidth tracking from Agora stats reported by client
   socket.on('webrtc-stats', ({ roomId, deltaBytes }) => {
-    if (roomId && deltaBytes > 0) updateRoom(roomId, {
-      bytesUsed: (getRoom(roomId)?.bytesUsed || 0) + deltaBytes,
-    });
+    if (roomId && deltaBytes > 0) {
+      updateRoom(roomId, {
+        bytesUsed: (getRoom(roomId)?.bytesUsed || 0) + deltaBytes,
+      });
+    }
   });
 
   socket.on('join-room', ({ roomId, role }) => {
     console.log(`[socket] join-room roomId=${roomId} role=${role} socket=${socket.id}`);
 
-    if (!roomSockets[roomId]) {
-      roomSockets[roomId] = { sender: null, receiver: null };
-    }
-
+    if (!roomSockets[roomId]) roomSockets[roomId] = { sender: null, receiver: null };
     const slots = roomSockets[roomId];
 
     if (slots[role]) {
@@ -84,40 +111,6 @@ io.on('connection', (socket) => {
     slots[role] = socket.id;
     socket.join(roomId);
     updateRoom(roomId, { [`${role}Joined`]: true });
-
-    const otherRole = role === 'sender' ? 'receiver' : 'sender';
-    if (slots[otherRole]) {
-      // Both peers present — notify both
-      io.to(slots[otherRole]).emit('peer-joined', { role });
-      socket.emit('peer-joined', { role: otherRole });
-      console.log(`[socket] peer-joined both present in room ${roomId}`);
-    }
-  });
-
-  socket.on('offer', ({ roomId, sdp }) => {
-    console.log(`[socket] offer from ${socket.id} in room ${roomId}`);
-    const slots = roomSockets[roomId];
-    if (slots && slots.receiver) {
-      io.to(slots.receiver).emit('offer', { sdp });
-    }
-  });
-
-  socket.on('answer', ({ roomId, sdp }) => {
-    console.log(`[socket] answer from ${socket.id} in room ${roomId}`);
-    const slots = roomSockets[roomId];
-    if (slots && slots.sender) {
-      io.to(slots.sender).emit('answer', { sdp });
-    }
-  });
-
-  socket.on('ice-candidate', ({ roomId, candidate }) => {
-    console.log(`[socket] ice-candidate from ${socket.id} in room ${roomId}`);
-    const slots = roomSockets[roomId];
-    if (!slots) return;
-    const targetId = slots.sender === socket.id ? slots.receiver : slots.sender;
-    if (targetId) {
-      io.to(targetId).emit('ice-candidate', { candidate });
-    }
   });
 
   socket.on('disconnect', () => {
@@ -126,16 +119,12 @@ io.on('connection', (socket) => {
       if (slots.sender === socket.id) {
         slots.sender = null;
         updateRoom(roomId, { senderJoined: false });
-        if (slots.receiver) {
-          io.to(slots.receiver).emit('peer-disconnected', { role: 'sender' });
-        }
+        if (slots.receiver) io.to(slots.receiver).emit('peer-disconnected', { role: 'sender' });
         console.log(`[socket] sender left room ${roomId}`);
       } else if (slots.receiver === socket.id) {
         slots.receiver = null;
         updateRoom(roomId, { receiverJoined: false });
-        if (slots.sender) {
-          io.to(slots.sender).emit('peer-disconnected', { role: 'receiver' });
-        }
+        if (slots.sender) io.to(slots.sender).emit('peer-disconnected', { role: 'receiver' });
         console.log(`[socket] receiver left room ${roomId}`);
       }
     }
