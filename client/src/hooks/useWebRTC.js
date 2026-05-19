@@ -15,6 +15,7 @@ export function useWebRTC({ role, roomId, localStream }) {
 
   const [remoteStream,     setRemoteStream]     = useState(null);
   const [connectionState,  setConnectionState]  = useState('disconnected');
+  const [viewerCount,      setViewerCount]      = useState(0);
 
   // Keep localStreamRef current so the join effect can read it without re-running
   useEffect(() => { localStreamRef.current = localStream; }, [localStream]);
@@ -66,6 +67,12 @@ export function useWebRTC({ role, roomId, localStream }) {
         client.on('user-unpublished', (_, mediaType) => {
           if (mediaType === 'video') setRemoteStream(null);
         });
+      }
+
+      // Track viewer count for sender
+      if (role === 'sender') {
+        client.on('user-joined', () => setViewerCount((n) => n + 1));
+        client.on('user-left',   () => setViewerCount((n) => Math.max(0, n - 1)));
       }
 
       const agoraRole = role === 'sender' ? 'host' : 'audience';
@@ -141,8 +148,9 @@ export function useWebRTC({ role, roomId, localStream }) {
   return {
     remoteStream,
     connectionState,
-    iceGatheringState: connectionState, // compat alias for DebugOverlay
-    slowWarning: false,                 // not applicable with Agora
-    replaceTrack: () => {},             // no-op — track replacement via localStream effect
+    viewerCount,
+    iceGatheringState: connectionState,
+    slowWarning: false,
+    replaceTrack: () => {},
   };
 }

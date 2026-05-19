@@ -119,7 +119,7 @@ export default function SenderView({ roomId }) {
     }
   }, [correctedStream]);
 
-  const { connectionState, iceGatheringState, slowWarning } = useWebRTC({
+  const { connectionState, iceGatheringState, viewerCount } = useWebRTC({
     role: 'sender',
     roomId,
     localStream: webrtcStream,
@@ -169,8 +169,12 @@ export default function SenderView({ roomId }) {
             </div>
           )}
         </div>
-        <div className="mt-3">
+        <div className="mt-3 flex items-center gap-4">
           <ConnectionBadge state={connectionState} />
+          <span className="flex items-center gap-1.5 text-sm text-[#888]">
+            <span className="w-2 h-2 rounded-full bg-[#7c3aed]" />
+            {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
+          </span>
         </div>
       </div>
 
