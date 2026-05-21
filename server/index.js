@@ -129,29 +129,39 @@ io.on('connection', (socket) => {
     updateRoom(roomId, { [`${role}Joined`]: true });
   });
 
-  socket.on('disconnect', () => {
-    console.log(`[socket] disconnected: ${socket.id}`);
+  function clearSocketFromRooms(socketId) {
     for (const [roomId, slots] of Object.entries(roomSockets)) {
-      if (slots.participant1 === socket.id) {
+      if (slots.participant1 === socketId) {
         slots.participant1 = null;
         if (slots.participant2) io.to(slots.participant2).emit('peer-disconnected', { role: 'participant' });
         console.log(`[socket] participant1 left room ${roomId}`);
-      } else if (slots.participant2 === socket.id) {
+      } else if (slots.participant2 === socketId) {
         slots.participant2 = null;
         if (slots.participant1) io.to(slots.participant1).emit('peer-disconnected', { role: 'participant' });
         console.log(`[socket] participant2 left room ${roomId}`);
-      } else if (slots.sender === socket.id) {
+      } else if (slots.sender === socketId) {
         slots.sender = null;
         updateRoom(roomId, { senderJoined: false });
         if (slots.receiver) io.to(slots.receiver).emit('peer-disconnected', { role: 'sender' });
         console.log(`[socket] sender left room ${roomId}`);
-      } else if (slots.receiver === socket.id) {
+      } else if (slots.receiver === socketId) {
         slots.receiver = null;
         updateRoom(roomId, { receiverJoined: false });
         if (slots.sender) io.to(slots.sender).emit('peer-disconnected', { role: 'receiver' });
         console.log(`[socket] receiver left room ${roomId}`);
       }
     }
+  }
+
+  socket.on('leave-room', () => {
+    console.log(`[socket] leave-room socket=${socket.id}`);
+    clearSocketFromRooms(socket.id);
+    socket.rooms.forEach((r) => { if (r !== socket.id) socket.leave(r); });
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`[socket] disconnected: ${socket.id}`);
+    clearSocketFromRooms(socket.id);
   });
 });
 

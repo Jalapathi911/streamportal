@@ -82,6 +82,7 @@ export function useMeeting({ roomId, localStream }) {
       localVideoTrackRef.current?.close();
       localAudioTrackRef.current?.close();
       clientRef.current?.leave();
+      socket.emit('leave-room', { roomId, role: 'participant' });
     };
   }, [roomId]);
 
