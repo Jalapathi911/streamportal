@@ -93,12 +93,8 @@ export default function MeetingView({ roomId, onLeave }) {
     if (localVideoRef.current && rawStream) localVideoRef.current.srcObject = rawStream;
   }, [rawStream]);
 
-  const { remoteStream, connectionState, peerLeft, setMicMuted, setMicVolume, setSpeakerVolume } =
-    useMeeting({ roomId, localStream: rawStream });
-
-  useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) remoteVideoRef.current.srcObject = remoteStream;
-  }, [remoteStream]);
+  const { hasRemoteVideo, connectionState, peerLeft, setMicMuted, setMicVolume, setSpeakerVolume } =
+    useMeeting({ roomId, localStream: rawStream, remoteVideoRef });
 
   // ── Peer disconnect ─────────────────────────────────────────────────────────
   useEffect(() => {
@@ -199,9 +195,8 @@ export default function MeetingView({ roomId, onLeave }) {
     >
       {/* Remote video */}
       <div className="absolute inset-0">
-        {remoteStream ? (
-          <video ref={remoteVideoRef} autoPlay playsInline style={remoteStyle} />
-        ) : (
+        <video ref={remoteVideoRef} autoPlay playsInline style={{ ...remoteStyle, display: hasRemoteVideo ? 'block' : 'none' }} />
+        {!hasRemoteVideo && (
           <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-[#0a0a0a]">
             <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
             <p className="text-[#888] text-sm">Waiting for the other person…</p>

@@ -3,14 +3,15 @@ import AgoraRTC from 'agora-rtc-sdk-ng';
 import { apiFetch } from '../utils/api.js';
 import socket from '../utils/socket.js';
 
-export function useMeeting({ roomId, localStream }) {
+export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   const clientRef           = useRef(null);
   const localVideoTrackRef  = useRef(null);
   const localAudioTrackRef  = useRef(null);
   const remoteAudioTrackRef = useRef(null);
+  const remoteVideoTrackRef = useRef(null);
   const localStreamRef      = useRef(localStream);
 
-  const [remoteStream,    setRemoteStream]    = useState(null);
+  const [hasRemoteVideo,  setHasRemoteVideo]  = useState(false);
   const [connectionState, setConnectionState] = useState('disconnected');
   const [peerLeft,        setPeerLeft]        = useState(false);
 
@@ -27,7 +28,7 @@ export function useMeeting({ roomId, localStream }) {
       if (cancelled) return;
 
       // RTC mode — no host/audience distinction, both peers are equal
-      const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'h264' });
+      const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       clientRef.current = client;
 
       client.on('connection-state-change', (s) => setConnectionState(s.toLowerCase()));
@@ -35,7 +36,9 @@ export function useMeeting({ roomId, localStream }) {
       client.on('user-published', async (user, mediaType) => {
         await client.subscribe(user, mediaType);
         if (mediaType === 'video') {
-          setRemoteStream(new MediaStream([user.videoTrack.getMediaStreamTrack()]));
+          remoteVideoTrackRef.current = user.videoTrack;
+          setHasRemoteVideo(true);
+          if (remoteVideoRef?.current) user.videoTrack.play(remoteVideoRef.current);
         }
         if (mediaType === 'audio') {
           remoteAudioTrackRef.current = user.audioTrack;
@@ -44,11 +47,15 @@ export function useMeeting({ roomId, localStream }) {
       });
 
       client.on('user-unpublished', (_, mediaType) => {
-        if (mediaType === 'video') setRemoteStream(null);
+        if (mediaType === 'video') {
+          remoteVideoTrackRef.current = null;
+          setHasRemoteVideo(false);
+        }
       });
 
       client.on('user-left', () => {
-        setRemoteStream(null);
+        remoteVideoTrackRef.current = null;
+        setHasRemoteVideo(false);
         setPeerLeft(true);
       });
 
@@ -102,7 +109,7 @@ export function useMeeting({ roomId, localStream }) {
   }, []);
 
   return {
-    remoteStream,
+    hasRemoteVideo,
     connectionState,
     peerLeft,
     setMicMuted,
