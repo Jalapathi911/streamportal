@@ -189,17 +189,28 @@ export default function MeetingView({ roomId, onLeave }) {
   function handleSpeakerVol(e) { const v = +e.target.value; setSpeakerState(v); setSpeakerVolume(v); }
 
   // ── Video styles ──────────────────────────────────────────────────────────
+  // For 90°/270° rotations the video element's box model doesn't swap — use
+  // absolute centering and swap width/height so the rotated frame fills its container.
+  const remoteIs90or270 = remoteRotation === 90 || remoteRotation === 270;
   const remoteStyle = {
     objectFit: remoteFit,
-    transform: `rotate(${remoteRotation}deg) scaleX(${remoteFlipped ? -1 : 1})`,
+    position: 'absolute',
+    top: '50%', left: '50%',
+    width:  remoteIs90or270 ? '100vh' : '100%',
+    height: remoteIs90or270 ? '100vw' : '100%',
+    transform: `translate(-50%, -50%) rotate(${remoteRotation}deg) scaleX(${remoteFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
-    width: '100%', height: '100%', display: 'block',
   };
+  // PiP container is w-36 (9rem) × h-48 (12rem) — swap those for 90°/270°
+  const pipIs90or270 = previewRotation === 90 || previewRotation === 270;
   const previewStyle = {
     objectFit: previewFit,
-    transform: `rotate(${previewRotation}deg) scaleX(${previewFlipped ? -1 : 1})`,
+    position: 'absolute',
+    top: '50%', left: '50%',
+    width:  pipIs90or270 ? '12rem' : '9rem',
+    height: pipIs90or270 ? '9rem'  : '12rem',
+    transform: `translate(-50%, -50%) rotate(${previewRotation}deg) scaleX(${previewFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
-    width: '100%', height: '100%', display: 'block',
   };
 
   // ── Error screen ──────────────────────────────────────────────────────────
@@ -234,7 +245,7 @@ export default function MeetingView({ roomId, onLeave }) {
       style={isFullscreen ? { width: '100%', height: '100%' } : {}}
     >
       {/* Remote video — always in DOM so Agora play() has a target */}
-      <div className="absolute inset-0">
+      <div className="absolute inset-0 overflow-hidden">
         <video ref={remoteVideoRef} autoPlay playsInline
           style={{ ...remoteStyle, display: hasRemoteVideo ? 'block' : 'none' }} />
         {!hasRemoteVideo && (
@@ -248,7 +259,9 @@ export default function MeetingView({ roomId, onLeave }) {
 
       {/* Local PiP — always in DOM so ref stays valid during device switch */}
       <div
-        className="absolute bottom-24 right-4 w-36 h-48 rounded-2xl overflow-hidden border-2 border-[#7c3aed]/70 shadow-2xl z-10 bg-[#141414]"
+        className={`absolute w-36 h-48 rounded-2xl overflow-hidden border-2 border-[#7c3aed]/70 shadow-2xl z-10 bg-[#141414] transition-all duration-300 ${
+          showSettings ? 'top-4 right-4' : 'bottom-24 right-4'
+        }`}
         style={{ display: showPreview ? 'block' : 'none' }}
       >
         <video ref={localVideoRef} autoPlay muted playsInline style={previewStyle} />
