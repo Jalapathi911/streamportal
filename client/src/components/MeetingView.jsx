@@ -85,8 +85,9 @@ export default function MeetingView({ roomId, onLeave }) {
   const [remoteRotation, setRemoteRotation] = useState(0);
   const [remoteFlipped,  setRemoteFlipped]  = useState(false);
 
-  const [previewFit,     setPreviewFit]     = useState('cover');
-  const [previewFlipped, setPreviewFlipped] = useState(false);
+  const [previewFit,            setPreviewFit]            = useState('cover');
+  const [previewFlipped,        setPreviewFlipped]        = useState(false);
+  const [previewDisplayRotation, setPreviewDisplayRotation] = useState(0);
 
   // ── Camera + mic ─────────────────────────────────────────────────────────
   async function startCamera(cameraId, micId) {
@@ -214,11 +215,16 @@ export default function MeetingView({ roomId, onLeave }) {
     transform: `translate(-50%, -50%) rotate(${remoteRotation}deg) scaleX(${remoteFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
   };
-  // Preview: canvas pipeline bakes in portrait rotation, so just objectFit + optional flip.
+  // Preview: canvas stream is already corrected; apply display rotation + flip locally only.
+  // For 90°/270° display rotation swap dimensions so the rotated frame fills the portrait container.
+  const previewDispIs90or270 = previewDisplayRotation === 90 || previewDisplayRotation === 270;
   const previewStyle = {
     objectFit: previewFit,
-    width: '100%', height: '100%', display: 'block',
-    transform: `scaleX(${previewFlipped ? -1 : 1})`,
+    position: 'absolute',
+    top: '50%', left: '50%',
+    width:  previewDispIs90or270 ? '12rem' : '100%',
+    height: previewDispIs90or270 ? '9rem'  : '100%',
+    transform: `translate(-50%, -50%) rotate(${previewDisplayRotation}deg) scaleX(${previewFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
   };
 
@@ -229,22 +235,9 @@ export default function MeetingView({ roomId, onLeave }) {
     </div>
   );
 
-  // ── Call ended / waiting for reconnect ────────────────────────────────────
-  if (callEnded) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="text-center">
-        <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-xl font-semibold text-white mb-2">Other person left</p>
-        <p className="text-[#888] text-sm mb-6">Waiting for them to reconnect…</p>
-        <button onClick={onLeave}
-          className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm">
-          Leave Room
-        </button>
-      </div>
-    </div>
-  );
-
   // ── Main layout ───────────────────────────────────────────────────────────
+  // NOTE: callEnded is rendered as an overlay (not early-return) so remoteVideoRef
+  // stays in the DOM — Agora can call play() on reconnect without a null ref.
   return (
     <div
       ref={containerRef}
@@ -265,6 +258,21 @@ export default function MeetingView({ roomId, onLeave }) {
           </div>
         )}
       </div>
+
+      {/* Call ended overlay — keeps video elements mounted so Agora play() works on reconnect */}
+      {callEnded && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/95">
+          <div className="text-center">
+            <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-xl font-semibold text-white mb-2">Other person left</p>
+            <p className="text-[#888] text-sm mb-6">Waiting for them to reconnect…</p>
+            <button onClick={onLeave}
+              className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm">
+              Leave Room
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Local PiP — always in DOM so ref stays valid during device switch */}
       <div
@@ -341,17 +349,18 @@ export default function MeetingView({ roomId, onLeave }) {
               </div>
               <FlipButton value={previewFlipped} onChange={setPreviewFlipped} />
               <div>
-                <p className="text-[#888] text-xs mb-2">Portrait Rotation</p>
-                <div className="grid grid-cols-2 gap-1">
-                  {[{ deg: 90, label: '↺ +90°' }, { deg: 270, label: '↻ −90°' }].map(({ deg, label }) => (
-                    <button key={deg} onClick={() => setPipelineRotation(deg)}
-                      className={`py-1.5 rounded text-xs font-semibold transition-colors border ${
-                        pipelineRotation === deg
-                          ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                          : 'bg-[#0a0a0a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
-                      }`}>{label}</button>
-                  ))}
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#888] text-xs">Output Rotation</p>
+                  <span className="text-[#555] text-xs">
+                    {(pipelineRotation === 90 || pipelineRotation === 270) ? '📱 Portrait' : '🖥️ Landscape'}
+                  </span>
                 </div>
+                <p className="text-[#444] text-xs mb-2">Rotates the video sent to the other person</p>
+                <RotationControl currentRotation={pipelineRotation} onRotate={setPipelineRotation} />
+              </div>
+              <div>
+                <p className="text-[#888] text-xs mb-2">Display Rotation <span className="text-[#444]">(local only)</span></p>
+                <RotationControl currentRotation={previewDisplayRotation} onRotate={setPreviewDisplayRotation} />
               </div>
             </div>
           </div>
