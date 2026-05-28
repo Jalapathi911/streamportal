@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useMeeting } from '../hooks/useMeeting.js';
+import { useCanvasPipeline } from '../hooks/useCanvasPipeline.js';
 import RotationControl from './RotationControl.jsx';
 import DeviceSelector from './DeviceSelector.jsx';
 import socket from '../utils/socket.js';
@@ -84,9 +85,8 @@ export default function MeetingView({ roomId, onLeave }) {
   const [remoteRotation, setRemoteRotation] = useState(0);
   const [remoteFlipped,  setRemoteFlipped]  = useState(false);
 
-  const [previewFit,      setPreviewFit]      = useState('cover');
-  const [previewRotation, setPreviewRotation] = useState(0);
-  const [previewFlipped,  setPreviewFlipped]  = useState(true);
+  const [previewFit,     setPreviewFit]     = useState('cover');
+  const [previewFlipped, setPreviewFlipped] = useState(false);
 
   // ── Camera + mic ─────────────────────────────────────────────────────────
   async function startCamera(cameraId, micId) {
@@ -111,15 +111,28 @@ export default function MeetingView({ roomId, onLeave }) {
     return () => setRawStream((prev) => { prev?.getTracks().forEach((t) => t.stop()); return null; });
   }, []);
 
+  // Canvas pipeline: rotates the raw camera feed to true portrait at the pixel level
+  const { correctedStream, rotationDegrees: pipelineRotation, setRotation: setPipelineRotation } = useCanvasPipeline(rawStream);
+
+  // Merge correctedStream video + rawStream audio so Agora publishes portrait video with live audio
+  const [localStream, setLocalStream] = useState(null);
+  useEffect(() => {
+    if (!correctedStream) return;
+    const combined = new MediaStream();
+    correctedStream.getVideoTracks().forEach((t) => combined.addTrack(t));
+    rawStream?.getAudioTracks().forEach((t) => combined.addTrack(t));
+    setLocalStream(combined);
+  }, [correctedStream, rawStream]);
+
   // Keep local preview in sync — always-rendered element so ref is always valid
   useEffect(() => {
-    if (localVideoRef.current && rawStream) localVideoRef.current.srcObject = rawStream;
-  }, [rawStream]);
+    if (localVideoRef.current && correctedStream) localVideoRef.current.srcObject = correctedStream;
+  }, [correctedStream]);
 
   const {
     hasRemoteVideo, connectionState, peerLeft,
     setMicMuted, setMicVolume, setSpeakerVolume, setSpeakerMuted: setSpeakerMutedFn,
-  } = useMeeting({ roomId, localStream: rawStream, remoteVideoRef });
+  } = useMeeting({ roomId, localStream, remoteVideoRef });
 
   // Auto-reconnect: peer came back after a drop
   useEffect(() => {
@@ -189,8 +202,8 @@ export default function MeetingView({ roomId, onLeave }) {
   function handleSpeakerVol(e) { const v = +e.target.value; setSpeakerState(v); setSpeakerVolume(v); }
 
   // ── Video styles ──────────────────────────────────────────────────────────
-  // For 90°/270° rotations the video element's box model doesn't swap — use
-  // absolute centering and swap width/height so the rotated frame fills its container.
+  // Remote: the other person's canvas pipeline already outputs portrait, so we only
+  // need CSS rotation as an emergency correction (default 0°).
   const remoteIs90or270 = remoteRotation === 90 || remoteRotation === 270;
   const remoteStyle = {
     objectFit: remoteFit,
@@ -201,15 +214,11 @@ export default function MeetingView({ roomId, onLeave }) {
     transform: `translate(-50%, -50%) rotate(${remoteRotation}deg) scaleX(${remoteFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
   };
-  // PiP container is w-36 (9rem) × h-48 (12rem) — swap those for 90°/270°
-  const pipIs90or270 = previewRotation === 90 || previewRotation === 270;
+  // Preview: canvas pipeline bakes in portrait rotation, so just objectFit + optional flip.
   const previewStyle = {
     objectFit: previewFit,
-    position: 'absolute',
-    top: '50%', left: '50%',
-    width:  pipIs90or270 ? '12rem' : '9rem',
-    height: pipIs90or270 ? '9rem'  : '12rem',
-    transform: `translate(-50%, -50%) rotate(${previewRotation}deg) scaleX(${previewFlipped ? -1 : 1})`,
+    width: '100%', height: '100%', display: 'block',
+    transform: `scaleX(${previewFlipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
   };
 
@@ -265,7 +274,7 @@ export default function MeetingView({ roomId, onLeave }) {
         style={{ display: showPreview ? 'block' : 'none' }}
       >
         <video ref={localVideoRef} autoPlay muted playsInline style={previewStyle} />
-        {!rawStream && (
+        {!correctedStream && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-6 h-6 border-2 border-[#555] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -332,8 +341,17 @@ export default function MeetingView({ roomId, onLeave }) {
               </div>
               <FlipButton value={previewFlipped} onChange={setPreviewFlipped} />
               <div>
-                <p className="text-[#888] text-xs mb-2">Display Rotation</p>
-                <RotationControl currentRotation={previewRotation} onRotate={setPreviewRotation} />
+                <p className="text-[#888] text-xs mb-2">Portrait Rotation</p>
+                <div className="grid grid-cols-2 gap-1">
+                  {[{ deg: 90, label: '↺ +90°' }, { deg: 270, label: '↻ −90°' }].map(({ deg, label }) => (
+                    <button key={deg} onClick={() => setPipelineRotation(deg)}
+                      className={`py-1.5 rounded text-xs font-semibold transition-colors border ${
+                        pipelineRotation === deg
+                          ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                          : 'bg-[#0a0a0a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      }`}>{label}</button>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
