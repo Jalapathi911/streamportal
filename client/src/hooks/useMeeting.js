@@ -10,6 +10,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   const remoteAudioTrackRef = useRef(null);
   const remoteVideoTrackRef = useRef(null);
   const localStreamRef      = useRef(localStream);
+  const joinedRef           = useRef(false);
 
   const [hasRemoteVideo,  setHasRemoteVideo]  = useState(false);
   const [connectionState, setConnectionState] = useState('disconnected');
@@ -17,7 +18,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
 
   useEffect(() => { localStreamRef.current = localStream; }, [localStream]);
 
-  // ── Join Agora RTC channel (two-way, both are hosts) ──────────────────────
+  // ── Join Agora RTC channel ────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -27,7 +28,6 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
       const { token, appId } = await res.json();
       if (cancelled) return;
 
-      // RTC mode — no host/audience distinction, both peers are equal
       const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
       clientRef.current = client;
 
@@ -60,8 +60,8 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
       });
 
       await client.join(appId, roomId, token || null, null);
+      joinedRef.current = true;
 
-      // Publish local stream once joined
       const stream = localStreamRef.current;
       if (stream) {
         const videoMSTrack = stream.getVideoTracks()[0];
@@ -78,7 +78,6 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
         }
       }
 
-      // Register presence with Socket.io
       socket.emit('join-room', { roomId, role: 'participant' });
     }
 
@@ -89,23 +88,61 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
       localVideoTrackRef.current?.close();
       localAudioTrackRef.current?.close();
       clientRef.current?.leave();
+      joinedRef.current = false;
       socket.emit('leave-room', { roomId, role: 'participant' });
     };
   }, [roomId]);
 
-  // ── Mic mute ──────────────────────────────────────────────────────────────
+  // ── Replace published tracks when camera/mic changes ──────────────────────
+  useEffect(() => {
+    if (!localStream || !joinedRef.current) return;
+    const client = clientRef.current;
+    if (!client || client.connectionState !== 'CONNECTED') return;
+
+    async function replaceStream() {
+      const videoMSTrack = localStream.getVideoTracks()[0];
+      const audioMSTrack = localStream.getAudioTracks()[0];
+
+      if (localVideoTrackRef.current) {
+        await client.unpublish(localVideoTrackRef.current);
+        localVideoTrackRef.current.close();
+        localVideoTrackRef.current = null;
+      }
+      if (localAudioTrackRef.current) {
+        await client.unpublish(localAudioTrackRef.current);
+        localAudioTrackRef.current.close();
+        localAudioTrackRef.current = null;
+      }
+
+      if (videoMSTrack) {
+        const vt = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoMSTrack, frameRate: 30 });
+        localVideoTrackRef.current = vt;
+        await client.publish(vt);
+      }
+      if (audioMSTrack) {
+        const at = AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioMSTrack });
+        localAudioTrackRef.current = at;
+        await client.publish(at);
+      }
+    }
+
+    replaceStream().catch(console.error);
+  }, [localStream]);
+
   const setMicMuted = useCallback((muted) => {
     localAudioTrackRef.current?.setEnabled(!muted);
   }, []);
 
-  // ── Mic volume (how loud you are to others, 0–100) ────────────────────────
   const setMicVolume = useCallback((vol) => {
     localAudioTrackRef.current?.setVolume(vol);
   }, []);
 
-  // ── Speaker volume (how loud remote sounds to you, 0–100) ─────────────────
   const setSpeakerVolume = useCallback((vol) => {
     remoteAudioTrackRef.current?.setVolume(vol);
+  }, []);
+
+  const setSpeakerMuted = useCallback((muted) => {
+    remoteAudioTrackRef.current?.setVolume(muted ? 0 : 100);
   }, []);
 
   return {
@@ -115,5 +152,6 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
     setMicMuted,
     setMicVolume,
     setSpeakerVolume,
+    setSpeakerMuted,
   };
 }
