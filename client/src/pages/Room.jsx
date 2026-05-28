@@ -31,7 +31,12 @@ export default function Room() {
       }
     });
 
-    return () => { socket.off('role-taken'); };
+    socket.on('room-full', () => {
+      setRoleError('This room is in a private session. Only 1 sender and 1 viewer are allowed.');
+      setMode(null);
+    });
+
+    return () => { socket.off('role-taken'); socket.off('room-full'); };
   }, [roomId]);
 
   function joinAs(chosenRole) {

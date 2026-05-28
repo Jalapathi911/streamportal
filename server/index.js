@@ -118,6 +118,13 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // Both broadcast slots occupied — block 3rd person entirely
+    if (slots.sender && slots.receiver) {
+      socket.emit('room-full');
+      console.log(`[socket] room-full roomId=${roomId}`);
+      return;
+    }
+
     if (slots[role]) {
       socket.emit('role-taken', { role });
       console.log(`[socket] role-taken roomId=${roomId} role=${role}`);

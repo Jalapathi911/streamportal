@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDevices } from '../hooks/useDevices.js';
 
 function Select({ label, value, onChange, options }) {
@@ -24,19 +24,35 @@ export default function DeviceSelector({ role, onCameraChange, onMicChange, onSp
   const { cameras, microphones, speakers, refreshDevices } = useDevices();
   const speakerWarningRef = useRef(false);
 
-  useEffect(() => {
-    refreshDevices();
-  }, []);
+  const [selectedCam,     setSelectedCam]     = useState('');
+  const [selectedMic,     setSelectedMic]     = useState('');
+  const [selectedSpeaker, setSelectedSpeaker] = useState('');
 
-  async function handleCameraChange(deviceId) {
+  useEffect(() => { refreshDevices(); }, []);
+
+  // Set defaults when device lists first load
+  useEffect(() => {
+    if (cameras.length     && !selectedCam)     setSelectedCam(cameras[0].deviceId);
+  }, [cameras]);
+  useEffect(() => {
+    if (microphones.length && !selectedMic)     setSelectedMic(microphones[0].deviceId);
+  }, [microphones]);
+  useEffect(() => {
+    if (speakers.length    && !selectedSpeaker) setSelectedSpeaker(speakers[0].deviceId);
+  }, [speakers]);
+
+  function handleCameraChange(deviceId) {
+    setSelectedCam(deviceId);
     if (onCameraChange) onCameraChange(deviceId);
   }
 
-  async function handleMicChange(deviceId) {
+  function handleMicChange(deviceId) {
+    setSelectedMic(deviceId);
     if (onMicChange) onMicChange(deviceId);
   }
 
   async function handleSpeakerChange(deviceId) {
+    setSelectedSpeaker(deviceId);
     if (!videoRef?.current) return;
     if (typeof videoRef.current.setSinkId === 'function') {
       await videoRef.current.setSinkId(deviceId);
@@ -49,29 +65,14 @@ export default function DeviceSelector({ role, onCameraChange, onMicChange, onSp
 
   return (
     <div className="space-y-3">
-      {(role === 'sender') && (
+      {role === 'sender' && (
         <>
-          <Select
-            label="Camera"
-            value=""
-            onChange={handleCameraChange}
-            options={cameras}
-          />
-          <Select
-            label="Microphone"
-            value=""
-            onChange={handleMicChange}
-            options={microphones}
-          />
+          <Select label="Camera"     value={selectedCam} onChange={handleCameraChange} options={cameras}      />
+          <Select label="Microphone" value={selectedMic} onChange={handleMicChange}    options={microphones}  />
         </>
       )}
-      {(role === 'receiver') && (
-        <Select
-          label="Speaker"
-          value=""
-          onChange={handleSpeakerChange}
-          options={speakers}
-        />
+      {role === 'receiver' && (
+        <Select label="Speaker" value={selectedSpeaker} onChange={handleSpeakerChange} options={speakers} />
       )}
     </div>
   );
