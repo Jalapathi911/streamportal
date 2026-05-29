@@ -33,7 +33,7 @@ const SpeakerOffIcon = () => (
   </svg>
 );
 
-export default function ReceiverView({ roomId }) {
+export default function ReceiverView({ roomId, onLeave }) {
   const remoteVideoRef  = useRef(null);
   const containerRef    = useRef(null);
   const hideTimerRef    = useRef(null);
@@ -156,13 +156,22 @@ export default function ReceiverView({ roomId }) {
 
       <div className="flex items-center justify-between">
         <ConnectionBadge state={connectionState} />
-        {isFullscreen && (
-          <button onClick={exitFullscreen}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-          >
-            ✕ Exit Fullscreen <kbd className="opacity-50 ml-1">ESC</kbd>
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {isFullscreen && (
+            <button onClick={exitFullscreen}
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
+            >
+              ✕ Exit Fullscreen <kbd className="opacity-50 ml-1">ESC</kbd>
+            </button>
+          )}
+          {onLeave && (
+            <button onClick={onLeave}
+              className="bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
+            >
+              Leave
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -258,6 +267,14 @@ export default function ReceiverView({ roomId }) {
               </svg>
               Fullscreen
             </button>
+
+            {onLeave && (
+              <button onClick={onLeave}
+                className="w-full bg-[#141414] border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-2.5 rounded-lg transition-all text-sm"
+              >
+                ✕ Leave
+              </button>
+            )}
           </div>
         </>
       )}

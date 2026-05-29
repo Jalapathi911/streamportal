@@ -77,7 +77,7 @@ const MicOffIcon = () => (
   </svg>
 );
 
-export default function SenderView({ roomId }) {
+export default function SenderView({ roomId, onLeave }) {
   const [rawStream, setRawStream] = useState(null);
   const [mediaError, setMediaError] = useState('');
   const [micMuted,   setMicMuted]   = useState(false);
@@ -251,6 +251,15 @@ export default function SenderView({ roomId }) {
             </div>
           )}
         </div>
+
+        {onLeave && (
+          <button
+            onClick={onLeave}
+            className="w-full bg-[#141414] border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-3 rounded-xl transition-all text-sm"
+          >
+            ✕ Stop Broadcasting
+          </button>
+        )}
       </div>
 
       <DebugOverlay role="sender" connectionState={connectionState} iceGatheringState={iceGatheringState} />
