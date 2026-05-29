@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Cap the long side to this — keeps encoding efficient while preserving 1080p quality.
+// A 4K raw frame rotated to portrait would be 2160×3840 which overloads WebRTC encoders.
+const MAX_LONG_SIDE = 1920;
+
 export function useCanvasPipeline(inputStream) {
   const [rotationDegrees, setRotation] = useState(90);
   const [correctedStream, setCorrectedStream] = useState(null);
@@ -22,7 +26,7 @@ export function useCanvasPipeline(inputStream) {
     video.playsInline = true;
 
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
 
     function drawFrame() {
       const rot = rotRef.current;
@@ -34,17 +38,27 @@ export function useCanvasPipeline(inputStream) {
         return;
       }
 
-      // Portrait output: swap canvas dimensions for 90/270
-      const outW = rot === 90 || rot === 270 ? vh : vw;
-      const outH = rot === 90 || rot === 270 ? vw : vh;
-      if (canvas.width !== outW) canvas.width = outW;
-      if (canvas.height !== outH) canvas.height = outH;
+      // Swap dims for 90/270 (portrait output from landscape camera)
+      const rawOutW = rot === 90 || rot === 270 ? vh : vw;
+      const rawOutH = rot === 90 || rot === 270 ? vw : vh;
+
+      // Downscale so long side ≤ MAX_LONG_SIDE — reduces encoder load, removes 4K→WebRTC choke
+      const scale = Math.min(1, MAX_LONG_SIDE / Math.max(rawOutW, rawOutH));
+      const outW = Math.round(rawOutW * scale);
+      const outH = Math.round(rawOutH * scale);
+
+      if (canvas.width !== outW || canvas.height !== outH) {
+        canvas.width  = outW;
+        canvas.height = outH;
+        // Canvas resize resets context state — re-apply quality settings
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+      }
 
       ctx.save();
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.translate(outW / 2, outH / 2);
       ctx.rotate((rot * Math.PI) / 180);
-      ctx.scale(-1, 1); // horizontal flip
+      ctx.scale(-scale, scale); // horizontal flip + downscale in one transform
       ctx.drawImage(video, -vw / 2, -vh / 2, vw, vh);
       ctx.restore();
 
@@ -53,6 +67,8 @@ export function useCanvasPipeline(inputStream) {
 
     video.onloadedmetadata = () => {
       video.play().then(() => {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         rafRef.current = requestAnimationFrame(drawFrame);
         const stream = canvas.captureStream(30);
         setCorrectedStream(stream);
