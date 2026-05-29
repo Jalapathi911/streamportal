@@ -27,7 +27,13 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
       const videoMSTrack = stream.getVideoTracks()[0];
       const audioMSTrack = stream.getAudioTracks()[0];
       if (videoMSTrack) {
-        const vt = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoMSTrack, frameRate: 30 });
+        const vt = AgoraRTC.createCustomVideoTrack({
+          mediaStreamTrack: videoMSTrack,
+          frameRate: 30,
+          bitrateMin: 1000,
+          bitrateMax: 4000,
+          optimizationMode: 'detail',
+        });
         videoTrackRef.current = vt;
         await client.publish(vt);
       }
@@ -114,7 +120,13 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
       }
 
       if (videoMSTrack) {
-        const vt = AgoraRTC.createCustomVideoTrack({ mediaStreamTrack: videoMSTrack, frameRate: 30 });
+        const vt = AgoraRTC.createCustomVideoTrack({
+          mediaStreamTrack: videoMSTrack,
+          frameRate: 30,
+          bitrateMin: 1000,
+          bitrateMax: 4000,
+          optimizationMode: 'detail',
+        });
         videoTrackRef.current = vt;
         await client.publish(vt);
       }
