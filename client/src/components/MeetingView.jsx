@@ -115,15 +115,23 @@ export default function MeetingView({ roomId, onLeave }) {
   // Canvas pipeline: rotates the raw camera feed to true portrait at the pixel level
   const { correctedStream, rotationDegrees: pipelineRotation, setRotation: setPipelineRotation } = useCanvasPipeline(rawStream);
 
-  // Merge correctedStream video + rawStream audio so Agora publishes portrait video with live audio
+  // Keep a ref so the localStream effect can read the latest rawStream without depending on it.
+  // This prevents a double-fire: rawStream fires the effect with the old correctedStream (stale
+  // canvas track), then correctedStream fires again — two concurrent replaceStream calls that race.
+  const rawStreamRef = useRef(null);
+  useEffect(() => { rawStreamRef.current = rawStream; }, [rawStream]);
+
+  // Merge correctedStream video + rawStream audio so Agora publishes portrait video with live audio.
+  // Only depends on correctedStream so it fires exactly once per camera switch (when the canvas
+  // pipeline has finished setting up the new stream).
   const [localStream, setLocalStream] = useState(null);
   useEffect(() => {
     if (!correctedStream) return;
     const combined = new MediaStream();
     correctedStream.getVideoTracks().forEach((t) => combined.addTrack(t));
-    rawStream?.getAudioTracks().forEach((t) => combined.addTrack(t));
+    rawStreamRef.current?.getAudioTracks().forEach((t) => combined.addTrack(t));
     setLocalStream(combined);
-  }, [correctedStream, rawStream]);
+  }, [correctedStream]);
 
   // Keep local preview in sync — always-rendered element so ref is always valid
   useEffect(() => {

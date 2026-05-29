@@ -11,6 +11,10 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   const remoteVideoTrackRef = useRef(null);
   const localStreamRef      = useRef(localStream);
   const joinedRef           = useRef(false);
+  const replacingRef        = useRef(false);   // guard against concurrent replaceStream calls
+  const micMutedRef         = useRef(false);   // persists mute state across track replacement
+  const speakerMutedRef     = useRef(false);   // persists across remote track re-subscription
+  const speakerVolRef       = useRef(100);
 
   const [hasRemoteVideo,  setHasRemoteVideo]  = useState(false);
   const [connectionState, setConnectionState] = useState('disconnected');
@@ -43,6 +47,8 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
         if (mediaType === 'audio') {
           remoteAudioTrackRef.current = user.audioTrack;
           user.audioTrack.play();
+          // Re-apply speaker mute/volume — new track always starts at 100%
+          user.audioTrack.setVolume(speakerMutedRef.current ? 0 : speakerVolRef.current);
         }
       });
 
@@ -106,35 +112,42 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
     if (!client || client.connectionState !== 'CONNECTED') return;
 
     async function replaceStream() {
-      const videoMSTrack = localStream.getVideoTracks()[0];
-      const audioMSTrack = localStream.getAudioTracks()[0];
+      if (replacingRef.current) return;
+      replacingRef.current = true;
+      try {
+        const videoMSTrack = localStream.getVideoTracks()[0];
+        const audioMSTrack = localStream.getAudioTracks()[0];
 
-      if (localVideoTrackRef.current) {
-        await client.unpublish(localVideoTrackRef.current);
-        localVideoTrackRef.current.close();
-        localVideoTrackRef.current = null;
-      }
-      if (localAudioTrackRef.current) {
-        await client.unpublish(localAudioTrackRef.current);
-        localAudioTrackRef.current.close();
-        localAudioTrackRef.current = null;
-      }
+        if (localVideoTrackRef.current) {
+          await client.unpublish(localVideoTrackRef.current);
+          localVideoTrackRef.current.close();
+          localVideoTrackRef.current = null;
+        }
+        if (localAudioTrackRef.current) {
+          await client.unpublish(localAudioTrackRef.current);
+          localAudioTrackRef.current.close();
+          localAudioTrackRef.current = null;
+        }
 
-      if (videoMSTrack) {
-        const vt = AgoraRTC.createCustomVideoTrack({
-          mediaStreamTrack: videoMSTrack,
-          frameRate: 30,
-          bitrateMin: 1000,
-          bitrateMax: 4000,
-          optimizationMode: 'detail',
-        });
-        localVideoTrackRef.current = vt;
-        await client.publish(vt);
-      }
-      if (audioMSTrack) {
-        const at = AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioMSTrack });
-        localAudioTrackRef.current = at;
-        await client.publish(at);
+        if (videoMSTrack) {
+          const vt = AgoraRTC.createCustomVideoTrack({
+            mediaStreamTrack: videoMSTrack,
+            frameRate: 30,
+            bitrateMin: 1000,
+            bitrateMax: 4000,
+            optimizationMode: 'detail',
+          });
+          localVideoTrackRef.current = vt;
+          await client.publish(vt);
+        }
+        if (audioMSTrack) {
+          const at = AgoraRTC.createCustomAudioTrack({ mediaStreamTrack: audioMSTrack });
+          at.setEnabled(!micMutedRef.current); // re-apply mic mute — new track starts enabled
+          localAudioTrackRef.current = at;
+          await client.publish(at);
+        }
+      } finally {
+        replacingRef.current = false;
       }
     }
 
@@ -142,6 +155,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   }, [localStream]);
 
   const setMicMuted = useCallback((muted) => {
+    micMutedRef.current = muted;
     localAudioTrackRef.current?.setEnabled(!muted);
   }, []);
 
@@ -150,11 +164,13 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   }, []);
 
   const setSpeakerVolume = useCallback((vol) => {
-    remoteAudioTrackRef.current?.setVolume(vol);
+    speakerVolRef.current = vol;
+    if (!speakerMutedRef.current) remoteAudioTrackRef.current?.setVolume(vol);
   }, []);
 
   const setSpeakerMuted = useCallback((muted) => {
-    remoteAudioTrackRef.current?.setVolume(muted ? 0 : 100);
+    speakerMutedRef.current = muted;
+    remoteAudioTrackRef.current?.setVolume(muted ? 0 : speakerVolRef.current);
   }, []);
 
   return {
