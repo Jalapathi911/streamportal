@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Cap the long side to this — keeps encoding efficient while preserving 1080p quality.
-// A 4K raw frame rotated to portrait would be 2160×3840 which overloads WebRTC encoders.
-const MAX_LONG_SIDE = 1920;
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+// Mobile CPUs can't keep up with drawing 4K frames at 30 fps — halve both caps.
+const MAX_LONG_SIDE = isMobile ? 1280 : 1920;
+const CAPTURE_FPS   = isMobile ? 24   : 30;
 
 export function useCanvasPipeline(inputStream) {
   const [rotationDegrees, setRotation] = useState(90);
@@ -42,7 +44,7 @@ export function useCanvasPipeline(inputStream) {
       const rawOutW = rot === 90 || rot === 270 ? vh : vw;
       const rawOutH = rot === 90 || rot === 270 ? vw : vh;
 
-      // Downscale so long side ≤ MAX_LONG_SIDE — reduces encoder load, removes 4K→WebRTC choke
+      // Downscale so long side ≤ MAX_LONG_SIDE — reduces encoder load
       const scale = Math.min(1, MAX_LONG_SIDE / Math.max(rawOutW, rawOutH));
       const outW = Math.round(rawOutW * scale);
       const outH = Math.round(rawOutH * scale);
@@ -70,7 +72,7 @@ export function useCanvasPipeline(inputStream) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         rafRef.current = requestAnimationFrame(drawFrame);
-        const stream = canvas.captureStream(30);
+        const stream = canvas.captureStream(CAPTURE_FPS);
         setCorrectedStream(stream);
       });
     };

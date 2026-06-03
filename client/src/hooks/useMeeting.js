@@ -3,6 +3,9 @@ import AgoraRTC from 'agora-rtc-sdk-ng';
 import { apiFetch } from '../utils/api.js';
 import socket from '../utils/socket.js';
 
+const isMobile    = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
+const BITRATE_MAX = isMobile ? 2000 : 4000;
+
 export function useMeeting({ roomId, localStream, remoteVideoRef }) {
   const clientRef           = useRef(null);
   const localVideoTrackRef  = useRef(null);
@@ -77,7 +80,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
             mediaStreamTrack: videoMSTrack,
             frameRate: 30,
             bitrateMin: 1000,
-            bitrateMax: 4000,
+            bitrateMax: BITRATE_MAX,
             optimizationMode: 'detail',
           });
           localVideoTrackRef.current = vt;
@@ -134,7 +137,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
             mediaStreamTrack: videoMSTrack,
             frameRate: 30,
             bitrateMin: 1000,
-            bitrateMax: 4000,
+            bitrateMax: BITRATE_MAX,
             optimizationMode: 'detail',
           });
           localVideoTrackRef.current = vt;

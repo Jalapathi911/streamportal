@@ -86,12 +86,13 @@ export default function SenderView({ roomId, onLeave }) {
   const selectedMic = useRef(null);
 
   async function startCamera(cameraId, micId) {
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
     try {
       const constraints = {
         video: {
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-          frameRate: { ideal: 30, max: 60 },
+          width:     { ideal: mobile ? 1280 : 3840 },
+          height:    { ideal: mobile ? 720  : 2160 },
+          frameRate: { ideal: mobile ? 24   : 30, max: mobile ? 24 : 60 },
           ...(cameraId ? { deviceId: { exact: cameraId } } : {}),
         },
         audio: micId ? { deviceId: { exact: micId } } : true,

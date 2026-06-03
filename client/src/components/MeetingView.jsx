@@ -91,12 +91,13 @@ export default function MeetingView({ roomId, onLeave }) {
 
   // ── Camera + mic ─────────────────────────────────────────────────────────
   async function startCamera(cameraId, micId) {
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 3840 },
-          height: { ideal: 2160 },
-          frameRate: { ideal: 30 },
+          width:     { ideal: mobile ? 1280 : 3840 },
+          height:    { ideal: mobile ? 720  : 2160 },
+          frameRate: { ideal: mobile ? 24   : 30   },
           ...(cameraId ? { deviceId: { exact: cameraId } } : {}),
         },
         audio: micId ? { deviceId: { exact: micId } } : true,

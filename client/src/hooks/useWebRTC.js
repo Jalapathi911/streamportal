@@ -5,6 +5,9 @@ import socket from '../utils/socket.js';
 
 AgoraRTC.setLogLevel(4);
 
+const isMobile    = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || window.innerWidth <= 768;
+const BITRATE_MAX = isMobile ? 2000 : 4000;
+
 export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
   const clientRef           = useRef(null);
   const videoTrackRef       = useRef(null);
@@ -31,7 +34,7 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
           mediaStreamTrack: videoMSTrack,
           frameRate: 30,
           bitrateMin: 1000,
-          bitrateMax: 4000,
+          bitrateMax: BITRATE_MAX,
           optimizationMode: 'detail',
         });
         videoTrackRef.current = vt;
@@ -124,7 +127,7 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
           mediaStreamTrack: videoMSTrack,
           frameRate: 30,
           bitrateMin: 1000,
-          bitrateMax: 4000,
+          bitrateMax: BITRATE_MAX,
           optimizationMode: 'detail',
         });
         videoTrackRef.current = vt;
