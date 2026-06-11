@@ -26,7 +26,12 @@ const io = new Server(server, {
 });
 
 app.use(helmet({
-  contentSecurityPolicy: false,     // API returns JSON, not HTML — no CSP needed here
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:    ["'none'"],  // API returns JSON — block all content loading
+      frameAncestors:["'none'"],  // prevent embedding in iframes
+    },
+  },
   crossOriginEmbedderPolicy: false, // WebRTC / SharedArrayBuffer compatibility
 }));
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
