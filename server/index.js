@@ -3,6 +3,7 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const helmet = require('helmet');
 const authRouter = require('./auth');
 const verifyToken = require('./middleware/verifyToken');
 const { createRoom, getRooms, getRoom, deleteRoom, updateRoom } = require('./roomManager');
@@ -24,6 +25,10 @@ const io = new Server(server, {
   },
 });
 
+app.use(helmet({
+  contentSecurityPolicy: false,     // API returns JSON, not HTML — no CSP needed here
+  crossOriginEmbedderPolicy: false, // WebRTC / SharedArrayBuffer compatibility
+}));
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173' }));
 app.use(express.json());
 
