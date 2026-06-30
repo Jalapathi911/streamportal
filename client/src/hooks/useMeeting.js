@@ -35,7 +35,7 @@ export function useMeeting({ roomId, localStream, remoteVideoRef }) {
       const { token, appId } = await res.json();
       if (cancelled) return;
 
-      const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+      const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'h264' });
       clientRef.current = client;
 
       client.on('connection-state-change', (s) => setConnectionState(s.toLowerCase()));

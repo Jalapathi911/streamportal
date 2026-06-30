@@ -53,7 +53,7 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
       const { token, appId } = await res.json();
       if (cancelled) return;
 
-      const client = AgoraRTC.createClient({ mode: 'live', codec: 'vp8' });
+      const client = AgoraRTC.createClient({ mode: 'live', codec: 'h264' });
       clientRef.current = client;
 
       client.on('connection-state-change', (curState) => setConnectionState(curState.toLowerCase()));

@@ -13,7 +13,7 @@ const FIT_MODES = [
 ];
 
 function ConnectionBadge({ state }) {
-  const dot = { connected:'bg-green-500', connecting:'bg-yellow-500', new:'bg-yellow-500', disconnected:'bg-red-500', failed:'bg-red-500', closed:'bg-[#555]' };
+  const dot = { connected: 'bg-green-500', connecting: 'bg-yellow-500', new: 'bg-yellow-500', disconnected: 'bg-red-500', failed: 'bg-red-500', closed: 'bg-[#555]' };
   return (
     <span className="flex items-center gap-2 text-sm text-[#888]">
       <span className={`w-2 h-2 rounded-full ${dot[state] || 'bg-[#555]'}`} />
@@ -22,6 +22,11 @@ function ConnectionBadge({ state }) {
   );
 }
 
+const GearIcon = () => (
+  <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/>
+  </svg>
+);
 const SpeakerOnIcon = () => (
   <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
     <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
@@ -34,28 +39,27 @@ const SpeakerOffIcon = () => (
 );
 
 export default function ReceiverView({ roomId, onLeave }) {
-  const remoteVideoRef  = useRef(null);
-  const containerRef    = useRef(null);
-  const hideTimerRef    = useRef(null);
+  const remoteVideoRef = useRef(null);
+  const containerRef   = useRef(null);
+  const hideTimerRef   = useRef(null);
 
   const [senderDisconnected, setSenderDisconnected] = useState(false);
   const [speakerMuted,       setSpeakerMuted]       = useState(false);
   const [displayRotation,    setDisplayRotation]    = useState(0);
   const [fitMode,            setFitMode]            = useState('cover');
   const [isFullscreen,       setIsFullscreen]       = useState(false);
-  const [showOverlay,        setShowOverlay]        = useState(true);
+  const [showControls,       setShowControls]       = useState(true);
   const [flipped,            setFlipped]            = useState(false);
+  const [showSettings,       setShowSettings]       = useState(false);
 
-  const { hasRemoteVideo, connectionState, iceGatheringState, slowWarning, setSpeakerMuted: setSpeakerMutedFn } = useWebRTC({
+  const { hasRemoteVideo, connectionState, iceGatheringState, setSpeakerMuted: setSpeakerMutedFn } = useWebRTC({
     role: 'receiver', roomId, localStream: null, remoteVideoRef,
   });
 
-  // Auto-reconnect: clear disconnected screen when sender comes back
   useEffect(() => {
     if (hasRemoteVideo) setSenderDisconnected(false);
   }, [hasRemoteVideo]);
 
-  // Sender disconnect via socket
   useEffect(() => {
     const h = ({ role }) => { if (role === 'sender') setSenderDisconnected(true); };
     socket.on('peer-disconnected', h);
@@ -68,120 +72,60 @@ export default function ReceiverView({ roomId, onLeave }) {
     setSpeakerMutedFn(next);
   }
 
-  // Fullscreen
   useEffect(() => {
     const onChange = () => {
       const fs = !!document.fullscreenElement;
       setIsFullscreen(fs);
-      setShowOverlay(!fs);
-      clearTimeout(hideTimerRef.current);
+      if (!fs) { setShowControls(true); clearTimeout(hideTimerRef.current); }
     };
     document.addEventListener('fullscreenchange', onChange);
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  const revealOverlay = useCallback(() => {
+  const revealControls = useCallback(() => {
     clearTimeout(hideTimerRef.current);
-    setShowOverlay(true);
-    hideTimerRef.current = setTimeout(() => setShowOverlay(false), 3000);
-  }, []);
+    setShowControls(true);
+    if (!showSettings) hideTimerRef.current = setTimeout(() => setShowControls(false), 3000);
+  }, [showSettings]);
 
-  const onMouseMove = useCallback(() => {
-    if (isFullscreen) revealOverlay();
-  }, [isFullscreen, revealOverlay]);
+  useEffect(() => {
+    if (showSettings) { clearTimeout(hideTimerRef.current); setShowControls(true); }
+  }, [showSettings]);
 
   useEffect(() => () => clearTimeout(hideTimerRef.current), []);
 
   const enterFullscreen = useCallback(async () => {
     try { await containerRef.current?.requestFullscreen(); } catch { /* denied */ }
   }, []);
-
   const exitFullscreen = useCallback(async () => {
     if (document.fullscreenElement) await document.exitFullscreen();
   }, []);
 
   const videoStyle = {
-    objectFit:  fitMode,
+    objectFit: fitMode,
     transform: `rotate(${displayRotation}deg) scaleX(${flipped ? -1 : 1})`,
     transition: 'transform 0.3s ease',
-    width:  '100%',
-    height: '100%',
-    display: 'block',
+    width: '100%', height: '100%', display: 'block',
   };
 
-  // Disconnected screen — still shown but sender reconnect clears it
-  if (senderDisconnected && !hasRemoteVideo) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-        <div className="text-center">
-          <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-xl font-semibold text-white mb-2">Sender Disconnected</p>
-          <p className="text-[#888] text-sm">Waiting for sender to reconnect…</p>
-        </div>
-      </div>
-    );
-  }
-
-  const overlayBar = (
-    <div
-      className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent"
-      style={{ transition: 'opacity 0.3s ease', opacity: showOverlay ? 1 : 0, pointerEvents: showOverlay ? 'auto' : 'none' }}
-      onMouseEnter={() => clearTimeout(hideTimerRef.current)}
-      onMouseLeave={() => { if (isFullscreen) revealOverlay(); }}
-    >
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <span className="text-[#aaa] text-xs mr-1 whitespace-nowrap">Feed Size:</span>
-        {FIT_MODES.map(({ key, label, desc }) => (
-          <button key={key} title={desc} onClick={() => setFitMode(key)}
-            className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-              fitMode === key ? 'bg-[#7c3aed] text-white' : 'bg-white/10 text-[#ccc] hover:bg-white/20 hover:text-white'
-            }`}
-          >{label}</button>
-        ))}
-        <div className="w-px h-4 bg-white/20 mx-1" />
-        <button onClick={() => setFlipped(f => !f)}
-          className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-            flipped ? 'bg-[#7c3aed] text-white' : 'bg-white/10 text-[#ccc] hover:bg-white/20 hover:text-white'
-          }`}
-        >⇄ Flip</button>
-        <div className="w-px h-4 bg-white/20 mx-1" />
-        <button onClick={handleSpeakerMute} title={speakerMuted ? 'Unmute speaker' : 'Mute speaker'}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-            speakerMuted ? 'bg-red-600 hover:bg-red-500' : 'bg-white/10 hover:bg-white/20'
-          }`}
-        >
-          {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <ConnectionBadge state={connectionState} />
-        <div className="flex items-center gap-2">
-          {isFullscreen && (
-            <button onClick={exitFullscreen}
-              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-            >
-              ✕ Exit Fullscreen <kbd className="opacity-50 ml-1">ESC</kbd>
-            </button>
-          )}
-          {onLeave && (
-            <button onClick={onLeave}
-              className="bg-red-600/80 hover:bg-red-600 text-white text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-            >
-              Leave
-            </button>
-          )}
-        </div>
+  if (senderDisconnected && !hasRemoteVideo) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="text-center">
+        <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-xl font-semibold text-white mb-2">Sender Disconnected</p>
+        <p className="text-[#888] text-sm">Waiting for sender to reconnect…</p>
       </div>
     </div>
   );
+
+  const controlsVisible = !isFullscreen || showControls;
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-6">
       <div
         ref={containerRef}
-        onMouseMove={onMouseMove}
-        onClick={() => { if (isFullscreen) revealOverlay(); }}
+        onMouseMove={() => { if (isFullscreen) revealControls(); }}
+        onClick={() => { if (isFullscreen && !showSettings) revealControls(); }}
         className="relative bg-black overflow-hidden"
         style={isFullscreen
           ? { width: '100%', height: '100%' }
@@ -198,82 +142,112 @@ export default function ReceiverView({ roomId, onLeave }) {
           </div>
         )}
 
-        {overlayBar}
+        {/* Gear icon — top-right corner */}
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowSettings((s) => !s); }}
+          style={{ transition: 'opacity 0.3s ease', opacity: controlsVisible ? 1 : 0, pointerEvents: controlsVisible ? 'auto' : 'none' }}
+          className={`absolute top-3 right-3 z-20 w-9 h-9 rounded-full flex items-center justify-center shadow-lg transition-colors ${
+            showSettings ? 'bg-[#7c3aed] text-white' : 'bg-black/60 hover:bg-black/80 text-white'
+          }`}
+        >
+          <GearIcon />
+        </button>
+
+        {/* Connection dot */}
+        <div
+          className="absolute bottom-3 left-3 z-10"
+          style={{ transition: 'opacity 0.3s ease', opacity: controlsVisible ? 1 : 0 }}
+        >
+          <ConnectionBadge state={connectionState} />
+        </div>
       </div>
 
-      {!isFullscreen && (
+      {/* Settings — right-side overlay */}
+      {showSettings && (
         <>
-          <div className="mt-3 mb-4 space-y-1 text-center">
-            <ConnectionBadge state={connectionState} />
-          </div>
-
-          <div className="w-full max-w-xs bg-[#141414] border border-[#2a2a2a] rounded-xl p-5 space-y-4">
-
-            {/* Speaker mute */}
-            <div>
-              <p className="text-white font-semibold mb-3">Audio</p>
-              <button onClick={handleSpeakerMute}
-                className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
-                  speakerMuted
-                    ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
-                    : 'bg-[#0a0a0a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
-                }`}
-              >
-                {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
-                {speakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
-              </button>
+          <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />
+          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-[#0d0d0d] border-l border-[#2a2a2a] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
+              <p className="text-white font-semibold">Settings</p>
+              <button onClick={() => setShowSettings(false)} className="text-[#888] hover:text-white text-lg leading-none">✕</button>
             </div>
 
-            {/* Feed Size + Flip */}
-            <div>
-              <p className="text-white font-semibold mb-3">Feed Size</p>
-              <div className="grid grid-cols-4 gap-1 mb-2">
-                {FIT_MODES.map(({ key, label, desc }) => (
-                  <button key={key} title={desc} onClick={() => setFitMode(key)}
-                    className={`py-2 rounded-lg text-xs font-semibold transition-colors border ${
-                      fitMode === key
-                        ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                        : 'bg-[#0a0a0a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
-                    }`}
-                  >{label}</button>
-                ))}
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Audio */}
+              <div>
+                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Audio</p>
+                <button
+                  onClick={handleSpeakerMute}
+                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
+                    speakerMuted
+                      ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
+                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                  }`}
+                >
+                  {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
+                  {speakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
+                </button>
               </div>
-              <button onClick={() => setFlipped(f => !f)}
-                className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors border ${
-                  flipped
-                    ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                    : 'bg-[#0a0a0a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
-                }`}
-              >⇄ Mirror / Flip {flipped ? '(ON)' : '(OFF)'}</button>
-            </div>
 
-            {/* Rotation */}
-            <div>
-              <p className="text-white font-semibold mb-3">Display Rotation</p>
-              <RotationControl currentRotation={displayRotation} onRotate={setDisplayRotation} />
-            </div>
+              {/* Feed Size + Flip */}
+              <div className="pt-5 border-t border-[#2a2a2a]">
+                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Feed Size</p>
+                <div className="grid grid-cols-4 gap-1 mb-2">
+                  {FIT_MODES.map(({ key, label, desc }) => (
+                    <button key={key} title={desc} onClick={() => setFitMode(key)}
+                      className={`py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                        fitMode === key
+                          ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      }`}
+                    >{label}</button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setFlipped((f) => !f)}
+                  className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                    flipped
+                      ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                  }`}
+                >⇄ Mirror / Flip {flipped ? '(ON)' : '(OFF)'}</button>
+              </div>
 
-            {/* Speaker device */}
-            <div>
-              <p className="text-white font-semibold mb-3">Audio Output</p>
-              <DeviceSelector role="receiver" videoRef={remoteVideoRef} />
-            </div>
+              {/* Display Rotation */}
+              <div className="pt-5 border-t border-[#2a2a2a]">
+                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Display Rotation</p>
+                <RotationControl currentRotation={displayRotation} onRotate={setDisplayRotation} />
+              </div>
 
-            <button onClick={enterFullscreen}
-              className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-2.5 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M1.5 1h4a.5.5 0 0 1 0 1H2v3.5a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 1.5 1zm9 0h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V2h-3.5a.5.5 0 0 1 0-1zM1 10.5a.5.5 0 0 1 .5-.5H5v-3.5a.5.5 0 0 1 1 0V10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5zm9 3a.5.5 0 0 1 .5-.5H14v-3.5a.5.5 0 0 1 1 0V14.5a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5z"/>
-              </svg>
-              Fullscreen
-            </button>
+              {/* Audio Output device */}
+              <div className="pt-5 border-t border-[#2a2a2a]">
+                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Audio Output</p>
+                <DeviceSelector role="receiver" videoRef={remoteVideoRef} />
+              </div>
+
+              {/* Fullscreen */}
+              <div className="pt-5 border-t border-[#2a2a2a]">
+                <button
+                  onClick={isFullscreen ? exitFullscreen : enterFullscreen}
+                  className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-2.5 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M1.5 1h4a.5.5 0 0 1 0 1H2v3.5a.5.5 0 0 1-1 0V1.5A.5.5 0 0 1 1.5 1zm9 0h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V2h-3.5a.5.5 0 0 1 0-1zM1 10.5a.5.5 0 0 1 .5-.5H5v-3.5a.5.5 0 0 1 1 0V10.5a.5.5 0 0 1-.5.5H1.5a.5.5 0 0 1-.5-.5zm9 3a.5.5 0 0 1 .5-.5H14v-3.5a.5.5 0 0 1 1 0V14.5a.5.5 0 0 1-.5.5h-4a.5.5 0 0 1-.5-.5z"/>
+                  </svg>
+                  {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+                </button>
+              </div>
+            </div>
 
             {onLeave && (
-              <button onClick={onLeave}
-                className="w-full bg-[#141414] border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-2.5 rounded-lg transition-all text-sm"
-              >
-                ✕ Leave
-              </button>
+              <div className="p-5 border-t border-[#2a2a2a]">
+                <button
+                  onClick={onLeave}
+                  className="w-full bg-transparent border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-2.5 rounded-xl transition-all text-sm"
+                >
+                  ✕ Leave
+                </button>
+              </div>
             )}
           </div>
         </>

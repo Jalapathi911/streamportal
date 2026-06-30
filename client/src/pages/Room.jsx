@@ -88,7 +88,7 @@ export default function Room() {
           className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
         >
           <div className="text-3xl mb-3">📡</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Go Live</div>
+          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Streamer</div>
           <div className="text-[#888] text-sm">Broadcast your camera to a viewer</div>
         </button>
 
@@ -98,7 +98,7 @@ export default function Room() {
           className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
         >
           <div className="text-3xl mb-3">📺</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Watch</div>
+          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Viewer</div>
           <div className="text-[#888] text-sm">View the live broadcast</div>
         </button>
 
@@ -108,8 +108,8 @@ export default function Room() {
           className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
         >
           <div className="text-3xl mb-3">🎥</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Join Meeting</div>
-          <div className="text-[#888] text-sm">1-on-1 video call · max 2 people</div>
+          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Face to Face</div>
+          <div className="text-[#888] text-sm">Private face-to-face video call</div>
         </button>
       </div>
 
