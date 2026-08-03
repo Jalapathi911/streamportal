@@ -11,10 +11,10 @@ function timeAgo(iso) {
 }
 
 function fmtBytes(bytes) {
-  if (!bytes)              return '—';
-  if (bytes < 1024)        return `${bytes} B`;
-  if (bytes < 1048576)     return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1073741824)  return `${(bytes / 1048576).toFixed(1)} MB`;
+  if (!bytes)             return '—';
+  if (bytes < 1024)       return `${bytes} B`;
+  if (bytes < 1048576)    return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
   return `${(bytes / 1073741824).toFixed(2)} GB`;
 }
 
@@ -26,9 +26,7 @@ function toBytes(value, unit) {
 
 function fromBytes(bytes) {
   if (!bytes) return { value: '', unit: 'GB' };
-  if (bytes >= 1073741824) {
-    return { value: String(parseFloat((bytes / 1073741824).toFixed(3))), unit: 'GB' };
-  }
+  if (bytes >= 1073741824) return { value: String(parseFloat((bytes / 1073741824).toFixed(3))), unit: 'GB' };
   return { value: String(parseFloat((bytes / 1048576).toFixed(3))), unit: 'MB' };
 }
 
@@ -40,22 +38,20 @@ const EditIcon = () => (
 
 function UsageBar({ bytesUsed, bytesLimit }) {
   if (!bytesLimit) {
-    return (
-      <span className="text-[#6b7280] text-sm font-mono">{fmtBytes(bytesUsed)}</span>
-    );
+    return <span className="text-gray-600 text-sm font-mono">{fmtBytes(bytesUsed)}</span>;
   }
-  const pct = Math.min((bytesUsed / bytesLimit) * 100, 100);
+  const pct      = Math.min((bytesUsed / bytesLimit) * 100, 100);
   const barColor = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-yellow-500' : 'bg-[#8B2BE2]';
-  const textColor = pct >= 100 ? 'text-red-400' : 'text-[#6b7280]';
+  const textColor = pct >= 100 ? 'text-red-500' : 'text-gray-600';
   return (
     <div className="space-y-1 w-full">
       <div className="flex items-center gap-1 text-xs font-mono flex-wrap">
         <span className={textColor}>{fmtBytes(bytesUsed)}</span>
-        <span className="text-[#444]">/</span>
-        <span className="text-[#555]">{fmtBytes(bytesLimit)}</span>
+        <span className="text-gray-300">/</span>
+        <span className="text-gray-400">{fmtBytes(bytesLimit)}</span>
         {pct >= 100 && <span className="text-red-500 font-bold text-[10px] tracking-wider">OVER</span>}
       </div>
-      <div className="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+      <div className="h-1.5 bg-[#e8e0f5] rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -83,15 +79,10 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  function showToast(msg) {
-    setToast(msg);
-    setTimeout(() => setToast(''), 2500);
-  }
+  function showToast(msg) { setToast(msg); setTimeout(() => setToast(''), 2500); }
 
   async function fetchRooms() {
-    const res = await apiFetch('/api/rooms', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await apiFetch('/api/rooms', { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) { navigate('/login'); return; }
     setRooms(await res.json());
   }
@@ -110,10 +101,7 @@ export default function Dashboard() {
   }
 
   async function deleteRoom(id) {
-    await apiFetch(`/api/rooms/${id}`, {
-      method:  'DELETE',
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiFetch(`/api/rooms/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
     fetchRooms();
   }
 
@@ -124,9 +112,7 @@ export default function Dashboard() {
 
   function openLimitModal(room) {
     const { value, unit } = fromBytes(room.bytesLimit);
-    setLimitModal(room);
-    setModalValue(value);
-    setModalUnit(unit);
+    setLimitModal(room); setModalValue(value); setModalUnit(unit);
   }
 
   async function saveLimit() {
@@ -139,23 +125,20 @@ export default function Dashboard() {
     if (res.ok) { setLimitModal(null); fetchRooms(); showToast('Limit updated'); }
   }
 
-  function logout() {
-    localStorage.removeItem('token');
-    navigate('/login');
-  }
+  function logout() { localStorage.removeItem('token'); navigate('/login'); }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex">
+    <div className="min-h-screen bg-[#f8f5ff] flex">
 
       {/* Sidebar */}
-      <aside className="w-60 bg-[#141414] border-r border-[#2a2a2a] flex flex-col p-6">
+      <aside className="w-60 bg-white border-r border-[#e8e0f5] flex flex-col p-6">
         <div className="flex flex-col mb-10">
           <img src="/holobox911-logo.png" alt="HoloBox911" className="w-36 object-contain mb-1" />
           <p className="text-[#8B2BE2] text-[9px] font-semibold tracking-widest uppercase">Live stream</p>
         </div>
 
         <nav className="flex-1 space-y-1">
-          <div className="flex items-center gap-3 px-3 py-2.5 bg-[#8B2BE2]/20 rounded-xl">
+          <div className="flex items-center gap-3 px-3 py-2.5 bg-[#8B2BE2]/10 rounded-xl">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8B2BE2" strokeWidth="2" strokeLinecap="round">
               <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
               <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
@@ -166,7 +149,7 @@ export default function Dashboard() {
 
         <button
           onClick={logout}
-          className="flex items-center gap-2 text-[#888] hover:text-white text-sm transition-colors"
+          className="flex items-center gap-2 text-gray-400 hover:text-gray-700 text-sm transition-colors"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -179,19 +162,19 @@ export default function Dashboard() {
       {/* Main */}
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-5xl">
-          <h1 className="text-2xl font-bold text-white mb-1">Rooms</h1>
-          <p className="text-[#888] text-sm mb-8">Create and manage your live stream rooms</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-1">Rooms</h1>
+          <p className="text-gray-500 text-sm mb-8">Create and manage your live stream rooms</p>
 
           {/* Create Room */}
-          <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-6 mb-8 max-w-2xl">
-            <h2 className="text-white font-semibold mb-4">Create Room</h2>
+          <div className="bg-white border border-[#e8e0f5] rounded-2xl p-6 mb-8 max-w-2xl shadow-sm">
+            <h2 className="text-gray-900 font-semibold mb-4">Create Room</h2>
             <form onSubmit={createRoom} className="space-y-3">
               <div className="flex gap-3">
                 <input
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   placeholder="Room name…"
-                  className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                  className="flex-1 bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
                 />
                 <button
                   type="submit"
@@ -201,56 +184,48 @@ export default function Dashboard() {
                   Create
                 </button>
               </div>
-
-              {/* Data limit row */}
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-[#888] text-xs shrink-0">Data limit</span>
+                <span className="text-gray-500 text-xs shrink-0">Data limit</span>
                 <input
-                  type="number"
-                  min="0"
-                  step="any"
+                  type="number" min="0" step="any"
                   value={limitInput}
                   onChange={(e) => setLimitInput(e.target.value)}
                   placeholder="Unlimited"
-                  className="w-28 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-1.5 text-white placeholder-[#444] text-sm focus:outline-none focus:border-[#8B2BE2] transition-all"
+                  className="w-28 bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-3 py-1.5 text-gray-900 placeholder-gray-400 text-sm focus:outline-none focus:border-[#8B2BE2] transition-all"
                 />
                 <select
                   value={limitUnitInput}
                   onChange={(e) => setLimitUnitInput(e.target.value)}
-                  className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#8B2BE2] transition-all"
+                  className="bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-3 py-1.5 text-gray-900 text-sm focus:outline-none focus:border-[#8B2BE2] transition-all"
                 >
                   <option value="MB">MB</option>
                   <option value="GB">GB</option>
                 </select>
-                <span className="text-[#555] text-xs">Leave blank for unlimited</span>
+                <span className="text-gray-400 text-xs">Leave blank for unlimited</span>
               </div>
             </form>
           </div>
 
           {/* Room List */}
-          <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl overflow-hidden">
-            <div className="grid gap-4 px-6 py-3 border-b border-[#2a2a2a] text-[#888] text-xs uppercase tracking-wider"
-                 style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 2fr' }}>
-              <span>Name</span>
-              <span>Created</span>
-              <span>Link</span>
-              <span>Delete</span>
-              <span>Usage / Limit</span>
+          <div className="bg-white border border-[#e8e0f5] rounded-2xl overflow-hidden shadow-sm">
+            <div
+              className="grid gap-4 px-6 py-3 border-b border-[#e8e0f5] text-gray-400 text-xs uppercase tracking-wider"
+              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 2fr' }}
+            >
+              <span>Name</span><span>Created</span><span>Link</span><span>Delete</span><span>Usage / Limit</span>
             </div>
 
             {rooms.length === 0 ? (
-              <p className="text-[#888] text-sm px-6 py-10 text-center">
-                No rooms yet. Create one above.
-              </p>
+              <p className="text-gray-400 text-sm px-6 py-10 text-center">No rooms yet. Create one above.</p>
             ) : (
               rooms.map((room) => (
                 <div
                   key={room.id}
-                  className="grid gap-4 px-6 py-4 border-b border-[#2a2a2a] last:border-0 items-center hover:bg-[#1a1a1a] transition-colors"
+                  className="grid gap-4 px-6 py-4 border-b border-[#e8e0f5] last:border-0 items-center hover:bg-[#f5f0ff] transition-colors"
                   style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 2fr' }}
                 >
-                  <span className="text-white font-medium truncate">{room.name}</span>
-                  <span className="text-[#888] text-sm">{timeAgo(room.createdAt)}</span>
+                  <span className="text-gray-900 font-medium truncate">{room.name}</span>
+                  <span className="text-gray-500 text-sm">{timeAgo(room.createdAt)}</span>
                   <button
                     onClick={() => copyLink(room.id)}
                     className="text-[#8B2BE2] hover:text-[#7B1BD2] text-sm transition-colors text-left font-medium"
@@ -259,12 +234,10 @@ export default function Dashboard() {
                   </button>
                   <button
                     onClick={() => deleteRoom(room.id)}
-                    className="text-red-500 hover:text-red-400 text-sm transition-colors text-left"
+                    className="text-red-500 hover:text-red-600 text-sm transition-colors text-left"
                   >
                     Delete
                   </button>
-
-                  {/* Usage / Limit cell */}
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex-1 min-w-0">
                       <UsageBar bytesUsed={room.bytesUsed} bytesLimit={room.bytesLimit} />
@@ -272,7 +245,7 @@ export default function Dashboard() {
                     <button
                       onClick={() => openLimitModal(room)}
                       title="Edit limit"
-                      className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-[#555] hover:text-[#8B2BE2] hover:bg-[#8B2BE2]/10 transition-colors"
+                      className="shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-gray-300 hover:text-[#8B2BE2] hover:bg-[#8B2BE2]/10 transition-colors"
                     >
                       <EditIcon />
                     </button>
@@ -287,49 +260,40 @@ export default function Dashboard() {
       {/* Edit limit modal */}
       {limitModal && (
         <>
-          <div
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
-            onClick={() => setLimitModal(null)}
-          />
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" onClick={() => setLimitModal(null)} />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm px-4">
-            <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-6">
-              <p className="text-white font-semibold mb-1">Edit Data Limit</p>
-              <p className="text-[#888] text-sm mb-5 truncate">{limitModal.name}</p>
-
+            <div className="bg-white border border-[#e8e0f5] rounded-2xl p-6 shadow-2xl shadow-[#8B2BE2]/10">
+              <p className="text-gray-900 font-semibold mb-1">Edit Data Limit</p>
+              <p className="text-gray-500 text-sm mb-5 truncate">{limitModal.name}</p>
               <div className="flex gap-2 mb-2">
                 <input
-                  type="number"
-                  min="0"
-                  step="any"
+                  type="number" min="0" step="any"
                   value={modalValue}
                   onChange={(e) => setModalValue(e.target.value)}
                   placeholder="0"
                   autoFocus
-                  className="flex-1 bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                  className="flex-1 bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
                 />
                 <select
                   value={modalUnit}
                   onChange={(e) => setModalUnit(e.target.value)}
-                  className="bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#8B2BE2] transition-all"
+                  className="bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-3 py-2.5 text-gray-900 focus:outline-none focus:border-[#8B2BE2] transition-all"
                 >
                   <option value="MB">MB</option>
                   <option value="GB">GB</option>
                 </select>
               </div>
-              <p className="text-[#555] text-xs mb-5">Set to 0 or leave blank to remove the limit</p>
-
-              {/* Current usage reminder */}
-              <div className="mb-5 p-3 bg-[#0a0a0a] rounded-xl border border-[#2a2a2a]">
-                <p className="text-[#888] text-xs">Current usage: <span className="text-white font-mono">{fmtBytes(limitModal.bytesUsed)}</span></p>
+              <p className="text-gray-400 text-xs mb-5">Set to 0 or leave blank to remove the limit</p>
+              <div className="mb-5 p-3 bg-[#f8f5ff] rounded-xl border border-[#e8e0f5]">
+                <p className="text-gray-500 text-xs">Current usage: <span className="text-gray-900 font-mono">{fmtBytes(limitModal.bytesUsed)}</span></p>
                 {limitModal.bytesLimit > 0 && (
-                  <p className="text-[#888] text-xs mt-0.5">Current limit: <span className="text-white font-mono">{fmtBytes(limitModal.bytesLimit)}</span></p>
+                  <p className="text-gray-500 text-xs mt-0.5">Current limit: <span className="text-gray-900 font-mono">{fmtBytes(limitModal.bytesLimit)}</span></p>
                 )}
               </div>
-
               <div className="flex gap-3">
                 <button
                   onClick={() => setLimitModal(null)}
-                  className="flex-1 py-2.5 rounded-xl border border-[#2a2a2a] text-[#888] text-sm font-semibold hover:text-white hover:border-[#555] transition-all"
+                  className="flex-1 py-2.5 rounded-xl border border-[#e8e0f5] text-gray-500 text-sm font-semibold hover:text-gray-900 hover:border-gray-300 transition-all"
                 >
                   Cancel
                 </button>

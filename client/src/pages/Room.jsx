@@ -134,17 +134,17 @@ export default function Room() {
   }
 
   if (notFound) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-6">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff] px-6">
       <div className="text-center">
-        <p className="text-xl font-bold text-white mb-2">Room not found</p>
-        <p className="text-[#888] text-sm">This room may have been deleted or the link is invalid.</p>
+        <p className="text-xl font-bold text-gray-900 mb-2">Room not found</p>
+        <p className="text-gray-500 text-sm">This room may have been deleted or the link is invalid.</p>
       </div>
     </div>
   );
 
   if (!room) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="flex items-center gap-2 text-[#888] text-sm">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff]">
+      <div className="flex items-center gap-2 text-gray-500 text-sm">
         <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
         </svg>
@@ -166,17 +166,17 @@ export default function Room() {
     return <SpectatorView roomId={roomId} onLeave={handleLeaveBroadcast} />;
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-[#0a0a0a] px-6 pt-14 pb-10">
+    <div className="min-h-screen flex flex-col items-center bg-[#f8f5ff] px-6 pt-14 pb-10">
 
       {/* Logo */}
       <div className="flex flex-col items-center mb-10">
         <img src="/holobox911-logo.png" alt="HoloBox911" className="w-56 object-contain mb-2" />
         <p className="text-[#8B2BE2] text-xs font-semibold tracking-widest uppercase mb-4">Live stream</p>
 
-        <p className="text-[#888] text-sm font-medium">Let's Explore</p>
+        <p className="text-gray-500 text-sm font-medium">Let's Explore</p>
         <div className="flex items-center gap-2 mt-2">
           <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-400" />
-          <span className="text-[#888] text-xs">{room.name}</span>
+          <span className="text-gray-500 text-xs">{room.name}</span>
         </div>
       </div>
 
@@ -216,11 +216,11 @@ export default function Room() {
             onClick={() => setShowSpectatorModal(false)}
           />
           <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm px-4">
-            <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8">
+            <div className="bg-white border border-[#e8e0f5] rounded-2xl p-8">
               <div className="flex flex-col items-center mb-6">
                 <IconSpectator />
-                <p className="text-white font-semibold text-lg mt-4">Admin View</p>
-                <p className="text-[#888] text-sm mt-1 text-center">Enter the password to access admin view</p>
+                <p className="text-gray-900 font-semibold text-lg mt-4">Admin View</p>
+                <p className="text-gray-500 text-sm mt-1 text-center">Enter the password to access admin view</p>
               </div>
               <form onSubmit={handleSpectatorSubmit} className="space-y-4">
                 <input
@@ -229,7 +229,7 @@ export default function Room() {
                   onChange={(e) => setSpectatorPassword(e.target.value)}
                   placeholder="Password"
                   autoFocus
-                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                  className="w-full bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
                 />
                 {spectatorError && (
                   <p className="text-red-500 text-sm text-center">{spectatorError}</p>
@@ -238,7 +238,7 @@ export default function Room() {
                   <button
                     type="button"
                     onClick={() => setShowSpectatorModal(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-[#2a2a2a] text-[#888] text-sm font-semibold hover:text-white hover:border-[#555] transition-all"
+                    className="flex-1 py-2.5 rounded-xl border border-[#e8e0f5] text-gray-500 text-sm font-semibold hover:text-white hover:border-[#555] transition-all"
                   >
                     Cancel
                   </button>

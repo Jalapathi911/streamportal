@@ -45,7 +45,7 @@ function FitButtons({ value, onChange }) {
           className={`py-1.5 rounded text-xs font-semibold transition-colors border ${
             value === key
               ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-              : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+              : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
           }`}
         >{label}</button>
       ))}
@@ -59,7 +59,7 @@ function FlipButton({ value, onChange }) {
       className={`w-full py-1.5 rounded text-xs font-semibold transition-colors border ${
         value
           ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+          : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
       }`}
     >⇄ Mirror / Flip {value ? '(ON)' : '(OFF)'}</button>
   );
@@ -195,7 +195,7 @@ export default function MeetingView({ roomId, onLeave }) {
   };
 
   if (mediaError) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff]">
       <p className="text-red-400">{mediaError}</p>
     </div>
   );
@@ -215,21 +215,21 @@ export default function MeetingView({ roomId, onLeave }) {
         <video ref={remoteVideoRef} autoPlay playsInline
           style={{ ...remoteStyle, display: hasRemoteVideo ? 'block' : 'none' }} />
         {!hasRemoteVideo && (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-[#0a0a0a]">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-3 bg-[#f8f5ff]">
             <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[#888] text-sm">Waiting for the other person…</p>
-            <p className="text-[#555] text-xs">Share the room link with them</p>
+            <p className="text-gray-500 text-sm">Waiting for the other person…</p>
+            <p className="text-gray-400 text-xs">Share the room link with them</p>
           </div>
         )}
       </div>
 
       {/* Call ended overlay — keeps video elements mounted so Agora play() works on reconnect */}
       {callEnded && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#0a0a0a]/95">
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#f8f5ff]/95">
           <div className="text-center">
             <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-xl font-semibold text-white mb-2">Other person left</p>
-            <p className="text-[#888] text-sm mb-6">Waiting for them to reconnect…</p>
+            <p className="text-xl font-semibold text-gray-900 mb-2">Other person left</p>
+            <p className="text-gray-500 text-sm mb-6">Waiting for them to reconnect…</p>
             <button onClick={onLeave}
               className="bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold px-6 py-2.5 rounded-lg transition-colors text-sm">
               Leave Room
@@ -272,41 +272,41 @@ export default function MeetingView({ roomId, onLeave }) {
       {showSettings && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-[#0d0d0d] border-l border-[#2a2a2a] flex flex-col shadow-2xl overflow-hidden">
-            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
-              <p className="text-white font-semibold">Settings</p>
-              <button onClick={() => setShowSettings(false)} className="text-[#888] hover:text-white text-lg leading-none">✕</button>
+          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-white border-l border-[#e8e0f5] flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between p-5 border-b border-[#e8e0f5]">
+              <p className="text-gray-900 font-semibold">Settings</p>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-900 text-lg leading-none">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* Camera & Mic */}
               <div>
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Camera & Microphone</p>
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Camera & Microphone</p>
                 <DeviceSelector role="sender" onCameraChange={handleCameraChange} onMicChange={handleMicChange} />
               </div>
 
               {/* Incoming Feed */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Incoming Feed</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Incoming Feed</p>
                 <div className="space-y-2">
                   <FitButtons value={remoteFit} onChange={setRemoteFit} />
                   <FlipButton value={remoteFlipped} onChange={setRemoteFlipped} />
-                  <p className="text-[#555] text-xs pt-1">Display Rotation</p>
+                  <p className="text-gray-400 text-xs pt-1">Display Rotation</p>
                   <RotationControl currentRotation={remoteRotation} onRotate={setRemoteRotation} />
                 </div>
                 <div className="mt-3">
-                  <p className="text-[#555] text-xs mb-2">Audio Output Device</p>
+                  <p className="text-gray-400 text-xs mb-2">Audio Output Device</p>
                   <DeviceSelector role="receiver" videoRef={remoteVideoRef} />
                 </div>
               </div>
 
               {/* Your Preview */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Your Preview</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Your Preview</p>
                 <div className="space-y-2">
                   <FitButtons value={previewFit} onChange={setPreviewFit} />
                   <FlipButton value={previewFlipped} onChange={setPreviewFlipped} />
-                  <p className="text-[#555] text-xs pt-1">Display Rotation <span className="text-[#3a3a3a]">(local only)</span></p>
+                  <p className="text-gray-400 text-xs pt-1">Display Rotation <span className="text-gray-400">(local only)</span></p>
                   <RotationControl currentRotation={previewDisplayRotation} onRotate={setPreviewDisplayRotation} />
                 </div>
               </div>

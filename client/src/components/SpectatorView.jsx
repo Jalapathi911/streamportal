@@ -5,7 +5,7 @@ import socket from '../utils/socket.js';
 function ConnectionBadge({ state }) {
   const dot = { connected: 'bg-green-500', connecting: 'bg-yellow-500', new: 'bg-yellow-500', disconnected: 'bg-red-500', failed: 'bg-red-500', closed: 'bg-[#555]' };
   return (
-    <span className="flex items-center gap-2 text-xs text-[#888]">
+    <span className="flex items-center gap-2 text-xs text-gray-500">
       <span className={`w-2 h-2 rounded-full ${dot[state] || 'bg-[#555]'}`} />
       {state}
     </span>
@@ -54,13 +54,13 @@ function RemoteVideoTile({ videoTrack, uid, label, audioMuted, onToggleAudio }) 
   }, [videoTrack]);
 
   return (
-    <div className="relative flex-1 bg-[#141414] rounded-2xl overflow-hidden border border-[#2a2a2a]" style={{ minHeight: '260px' }}>
+    <div className="relative flex-1 bg-[#141414] rounded-2xl overflow-hidden border border-[#e8e0f5]" style={{ minHeight: '260px' }}>
       <div ref={containerRef} className="absolute inset-0" />
 
       {!videoTrack && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
           <div className="w-8 h-8 border-2 border-[#8B2BE2] border-t-transparent rounded-full animate-spin" />
-          <p className="text-[#666] text-xs">Waiting for {label}…</p>
+          <p className="text-gray-400 text-xs">Waiting for {label}…</p>
         </div>
       )}
 
@@ -89,13 +89,13 @@ function AdminToggle({ label, icon, active, onClick }) {
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all border ${
         active
           ? 'bg-red-600/20 border-red-600/50 text-red-400 hover:bg-red-600/30'
-          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#8B2BE2]/60 hover:text-white'
+          : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#8B2BE2]/60 hover:text-gray-900'
       }`}
     >
       <span className="shrink-0">{icon}</span>
       <span className="flex-1 text-left">{label}</span>
       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full tracking-wider ${
-        active ? 'bg-red-600/40 text-red-300' : 'bg-[#2a2a2a] text-[#555]'
+        active ? 'bg-red-600/40 text-red-300' : 'bg-[#e8e0f5] text-gray-400'
       }`}>
         {active ? 'MUTED' : 'LIVE'}
       </span>
@@ -127,7 +127,7 @@ export default function SpectatorView({ roomId, onLeave }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col p-4 gap-4">
+    <div className="min-h-screen bg-[#f8f5ff] flex flex-col p-4 gap-4">
 
       {/* Header bar */}
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -141,7 +141,7 @@ export default function SpectatorView({ roomId, onLeave }) {
             <select
               value={selectedSpeaker}
               onChange={handleSpeakerChange}
-              className="bg-[#141414] border border-[#2a2a2a] rounded-xl px-3 py-1.5 text-white text-xs focus:outline-none focus:border-[#8B2BE2] transition-colors"
+              className="bg-white border border-[#e8e0f5] rounded-xl px-3 py-1.5 text-gray-900 text-xs focus:outline-none focus:border-[#8B2BE2] transition-colors"
             >
               <option value="">Default Speaker</option>
               {speakerDevices.map((d) => (
@@ -155,7 +155,7 @@ export default function SpectatorView({ roomId, onLeave }) {
             onClick={() => setShowSettings((s) => !s)}
             title="Admin controls"
             className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-              showSettings ? 'bg-[#8B2BE2] text-white' : 'bg-[#141414] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#555]'
+              showSettings ? 'bg-[#8B2BE2] text-white' : 'bg-white border border-[#e8e0f5] text-gray-500 hover:text-gray-900 hover:border-[#8B2BE2]'
             }`}
           >
             <GearIcon />
@@ -175,8 +175,8 @@ export default function SpectatorView({ roomId, onLeave }) {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="w-10 h-10 border-2 border-[#8B2BE2] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-              <p className="text-[#888] text-sm">Waiting for feeds…</p>
-              <p className="text-[#555] text-xs mt-1">Streamer and Viewer must be in the room</p>
+              <p className="text-gray-500 text-sm">Waiting for feeds…</p>
+              <p className="text-gray-400 text-xs mt-1">Streamer and Viewer must be in the room</p>
             </div>
           </div>
         ) : (
@@ -197,17 +197,17 @@ export default function SpectatorView({ roomId, onLeave }) {
       {showSettings && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-[#0d0d0d] border-l border-[#2a2a2a] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
-              <p className="text-white font-semibold">Admin Controls</p>
-              <button onClick={() => setShowSettings(false)} className="text-[#888] hover:text-white text-lg leading-none">✕</button>
+          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-white border-l border-[#e8e0f5] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-[#e8e0f5]">
+              <p className="text-gray-900 font-semibold">Admin Controls</p>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-900 text-lg leading-none">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-6">
 
               {/* Streamer controls */}
               <div>
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3 uppercase tracking-wider">Streamer</p>
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3 uppercase tracking-wider">Streamer</p>
                 <div className="space-y-2">
                   <AdminToggle
                     label="Mute Mic"
@@ -225,8 +225,8 @@ export default function SpectatorView({ roomId, onLeave }) {
               </div>
 
               {/* Viewer controls */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3 uppercase tracking-wider">Viewer</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3 uppercase tracking-wider">Viewer</p>
                 <div className="space-y-2">
                   <AdminToggle
                     label="Mute Mic"
@@ -244,9 +244,9 @@ export default function SpectatorView({ roomId, onLeave }) {
               </div>
 
               {/* Note about per-feed mute */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-2 uppercase tracking-wider">Your Audio</p>
-                <p className="text-[#555] text-xs leading-relaxed">
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-2 uppercase tracking-wider">Your Audio</p>
+                <p className="text-gray-400 text-xs leading-relaxed">
                   Use the speaker icon on each video tile to mute your own playback for that feed. This only affects what you hear.
                 </p>
               </div>

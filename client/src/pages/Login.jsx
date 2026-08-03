@@ -32,21 +32,21 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff] px-4">
       <div className="w-full max-w-sm">
 
         {/* Logo */}
         <div className="flex flex-col items-center mb-10">
           <img src="/holobox911-logo.png" alt="HoloBox911" className="w-52 object-contain mb-3" />
           <p className="text-[#8B2BE2] text-xs font-semibold tracking-widest uppercase">Live stream</p>
-          <p className="text-[#888] text-sm mt-4">Admin Login</p>
+          <p className="text-gray-400 text-sm mt-4">Admin Login</p>
         </div>
 
         {/* Card */}
-        <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8">
+        <div className="bg-white border border-[#e8e0f5] rounded-2xl p-8 shadow-lg shadow-[#8B2BE2]/5">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-[#888] mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
                 Username
               </label>
               <input
@@ -56,12 +56,12 @@ export default function Login() {
                 required
                 autoFocus
                 placeholder="admin"
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                className="w-full bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#888] mb-1.5 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wider">
                 Password
               </label>
               <input
@@ -70,11 +70,11 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="••••••••"
-                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                className="w-full bg-[#faf8ff] border border-[#e8e0f5] rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
               />
             </div>
 
-            {error && <p className="text-red-400 text-sm">{error}</p>}
+            {error && <p className="text-red-500 text-sm">{error}</p>}
 
             <button
               type="submit"

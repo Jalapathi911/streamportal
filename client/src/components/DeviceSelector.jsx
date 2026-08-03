@@ -4,11 +4,11 @@ import { useDevices } from '../hooks/useDevices.js';
 function Select({ label, value, onChange, options }) {
   return (
     <div>
-      <label className="block text-[#888] text-xs mb-1">{label}</label>
+      <label className="block text-gray-500 text-xs mb-1">{label}</label>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
+        className="w-full bg-[#faf8ff] border border-[#e8e0f5] rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-[#7c3aed] transition-colors"
       >
         {options.map((d) => (
           <option key={d.deviceId} value={d.deviceId}>

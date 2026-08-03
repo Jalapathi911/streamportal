@@ -11,7 +11,7 @@ function ConnectionBadge({ state }) {
     disconnected: 'bg-red-500', failed: 'bg-red-500', closed: 'bg-[#888]',
   };
   return (
-    <span className="flex items-center gap-2 text-sm text-[#888]">
+    <span className="flex items-center gap-2 text-sm text-gray-500">
       <span className={`w-2 h-2 rounded-full ${colors[state] || 'bg-[#888]'}`} />
       {state}
     </span>
@@ -155,19 +155,19 @@ export default function SenderView({ roomId, onLeave }) {
   };
 
   if (mediaError) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff]">
       <p className="text-red-400">{mediaError}</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-4">
+    <div className="min-h-screen bg-[#f8f5ff] flex flex-col items-center justify-center p-4">
       {/* Portrait video container */}
       <div className="relative" style={{ width: '100%', maxWidth: '320px', aspectRatio: '9/16' }}>
-        <div className="w-full h-full bg-[#141414] border border-[#2a2a2a] rounded-xl overflow-hidden relative">
+        <div className="w-full h-full bg-[#141414] border border-[#e8e0f5] rounded-xl overflow-hidden relative">
           <video ref={localVideoRef} autoPlay muted playsInline style={previewStyle} />
           {!rawStream && (
-            <div className="absolute inset-0 flex items-center justify-center text-[#888] text-sm">
+            <div className="absolute inset-0 flex items-center justify-center text-gray-500 text-sm">
               Starting camera…
             </div>
           )}
@@ -193,7 +193,7 @@ export default function SenderView({ roomId, onLeave }) {
       {/* Status */}
       <div className="mt-3 flex items-center gap-4">
         <ConnectionBadge state={connectionState} />
-        <span className="flex items-center gap-1.5 text-sm text-[#888]">
+        <span className="flex items-center gap-1.5 text-sm text-gray-500">
           <span className="w-2 h-2 rounded-full bg-[#7c3aed]" />
           {viewerCount} viewer{viewerCount !== 1 ? 's' : ''}
         </span>
@@ -203,23 +203,23 @@ export default function SenderView({ roomId, onLeave }) {
       {showSettings && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-[#0d0d0d] border-l border-[#2a2a2a] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
-              <p className="text-white font-semibold">Settings</p>
-              <button onClick={() => setShowSettings(false)} className="text-[#888] hover:text-white text-lg leading-none">✕</button>
+          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-white border-l border-[#e8e0f5] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-[#e8e0f5]">
+              <p className="text-gray-900 font-semibold">Settings</p>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-900 text-lg leading-none">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* Devices */}
               <div>
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Camera & Microphone</p>
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Camera & Microphone</p>
                 <DeviceSelector role="sender" onCameraChange={handleCameraChange} onMicChange={handleMicChange} />
                 <button
                   onClick={handleMicMute}
                   className={`mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
                     micMuted
                       ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
-                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                   }`}
                 >
                   {micMuted ? <MicOffIcon /> : <MicOnIcon />}
@@ -231,16 +231,16 @@ export default function SenderView({ roomId, onLeave }) {
               </div>
 
               {/* Preview rotation (CSS display only — raw stream sent to viewers) */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-1">Preview Rotation</p>
-                <p className="text-[#555] text-xs mb-3">Display only — raw stream is sent to viewers</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-1">Preview Rotation</p>
+                <p className="text-gray-400 text-xs mb-3">Display only — raw stream is sent to viewers</p>
                 <RotationControl currentRotation={previewRotation} onRotate={setPreviewRotation} />
                 <button
                   onClick={() => setPreviewFlipped((f) => !f)}
                   className={`mt-2 w-full py-2 rounded-lg text-xs font-semibold transition-colors border ${
                     previewFlipped
                       ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                   }`}
                 >
                   ⇄ Mirror / Flip {previewFlipped ? '(ON)' : '(OFF)'}
@@ -248,8 +248,8 @@ export default function SenderView({ roomId, onLeave }) {
               </div>
 
               {/* Recording */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Recording</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Recording</p>
                 {!isRecording ? (
                   <button
                     onClick={startRecording}
@@ -262,11 +262,11 @@ export default function SenderView({ roomId, onLeave }) {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                      <span className="text-white font-mono text-sm">{timer}</span>
+                      <span className="text-gray-900 font-mono text-sm">{timer}</span>
                     </div>
                     <button
                       onClick={stopRecording}
-                      className="w-full bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white font-semibold py-2 rounded-lg transition-colors text-sm"
+                      className="w-full bg-[#e8e0f5] hover:bg-[#d8d0f0] text-gray-900 font-semibold py-2 rounded-lg transition-colors text-sm"
                     >
                       Stop & Download
                     </button>
@@ -276,7 +276,7 @@ export default function SenderView({ roomId, onLeave }) {
             </div>
 
             {onLeave && (
-              <div className="p-5 border-t border-[#2a2a2a]">
+              <div className="p-5 border-t border-[#e8e0f5]">
                 <button
                   onClick={onLeave}
                   className="w-full bg-transparent border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-2.5 rounded-xl transition-all text-sm"

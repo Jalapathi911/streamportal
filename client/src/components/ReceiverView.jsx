@@ -15,7 +15,7 @@ const FIT_MODES = [
 function ConnectionBadge({ state }) {
   const dot = { connected: 'bg-green-500', connecting: 'bg-yellow-500', new: 'bg-yellow-500', disconnected: 'bg-red-500', failed: 'bg-red-500', closed: 'bg-[#555]' };
   return (
-    <span className="flex items-center gap-2 text-sm text-[#888]">
+    <span className="flex items-center gap-2 text-sm text-gray-500">
       <span className={`w-2 h-2 rounded-full ${dot[state] || 'bg-[#555]'}`} />
       {state}
     </span>
@@ -157,11 +157,11 @@ export default function ReceiverView({ roomId, onLeave }) {
   };
 
   if (senderDisconnected && !hasRemoteVideo) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f5ff]">
       <div className="text-center">
         <div className="w-10 h-10 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-        <p className="text-xl font-semibold text-white mb-2">Sender Disconnected</p>
-        <p className="text-[#888] text-sm">Waiting for sender to reconnect…</p>
+        <p className="text-xl font-semibold text-gray-900 mb-2">Sender Disconnected</p>
+        <p className="text-gray-500 text-sm">Waiting for sender to reconnect…</p>
       </div>
     </div>
   );
@@ -169,7 +169,7 @@ export default function ReceiverView({ roomId, onLeave }) {
   const controlsVisible = !isFullscreen || showControls;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-[#f8f5ff] flex flex-col items-center justify-center p-6">
       <div
         ref={containerRef}
         onMouseMove={() => { if (isFullscreen) revealControls(); }}
@@ -177,7 +177,7 @@ export default function ReceiverView({ roomId, onLeave }) {
         className="relative bg-black overflow-hidden"
         style={isFullscreen
           ? { width: '100%', height: '100%' }
-          : { width: '100%', maxWidth: '320px', aspectRatio: '9/16', borderRadius: '12px', border: '1px solid #2a2a2a' }
+          : { width: '100%', maxWidth: '320px', aspectRatio: '9/16', borderRadius: '12px', border: '1px solid #e8e0f5' }
         }
       >
         {/* Always rendered so Agora play() has a DOM target */}
@@ -186,13 +186,13 @@ export default function ReceiverView({ roomId, onLeave }) {
         {!hasRemoteVideo && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#141414]">
             <div className="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin" />
-            <p className="text-[#888] text-sm">Waiting for sender…</p>
+            <p className="text-gray-500 text-sm">Waiting for sender…</p>
           </div>
         )}
 
         {/* Own camera PiP (visible to spectators) */}
         {localStream && (
-          <div className="absolute bottom-12 left-3 z-10 w-16 rounded-lg overflow-hidden border border-[#2a2a2a] shadow-lg" style={{ aspectRatio: '3/4' }}>
+          <div className="absolute bottom-12 left-3 z-10 w-16 rounded-lg overflow-hidden border border-[#e8e0f5] shadow-lg" style={{ aspectRatio: '3/4' }}>
             <video ref={localPreviewRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           </div>
         )}
@@ -221,23 +221,23 @@ export default function ReceiverView({ roomId, onLeave }) {
       {showSettings && (
         <>
           <div className="fixed inset-0 z-30" onClick={() => setShowSettings(false)} />
-          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-[#0d0d0d] border-l border-[#2a2a2a] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-5 border-b border-[#2a2a2a]">
-              <p className="text-white font-semibold">Settings</p>
-              <button onClick={() => setShowSettings(false)} className="text-[#888] hover:text-white text-lg leading-none">✕</button>
+          <div className="fixed top-0 right-0 bottom-0 z-40 w-72 bg-white border-l border-[#e8e0f5] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-5 border-b border-[#e8e0f5]">
+              <p className="text-gray-900 font-semibold">Settings</p>
+              <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-900 text-lg leading-none">✕</button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
               {/* Audio */}
               <div>
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Audio</p>
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Audio</p>
                 <div className="space-y-2">
                   <button
                     onClick={handleSpeakerMute}
                     className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
                       speakerMuted
                         ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
-                        : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                        : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                     }`}
                   >
                     {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
@@ -252,7 +252,7 @@ export default function ReceiverView({ roomId, onLeave }) {
                       className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
                         micMuted
                           ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
-                          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                          : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                       }`}
                     >
                       <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
@@ -271,15 +271,15 @@ export default function ReceiverView({ roomId, onLeave }) {
               </div>
 
               {/* Feed Size + Flip */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Feed Size</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Feed Size</p>
                 <div className="grid grid-cols-4 gap-1 mb-2">
                   {FIT_MODES.map(({ key, label, desc }) => (
                     <button key={key} title={desc} onClick={() => setFitMode(key)}
                       className={`py-2 rounded-lg text-xs font-semibold transition-colors border ${
                         fitMode === key
                           ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                          : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                       }`}
                     >{label}</button>
                   ))}
@@ -289,25 +289,25 @@ export default function ReceiverView({ roomId, onLeave }) {
                   className={`w-full py-2 rounded-lg text-xs font-semibold transition-colors border ${
                     flipped
                       ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
-                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
                   }`}
                 >⇄ Mirror / Flip {flipped ? '(ON)' : '(OFF)'}</button>
               </div>
 
               {/* Display Rotation */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Display Rotation</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Display Rotation</p>
                 <RotationControl currentRotation={displayRotation} onRotate={setDisplayRotation} />
               </div>
 
               {/* Audio Output device */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
-                <p className="text-[#a78bfa] text-xs font-semibold mb-3">Audio Output</p>
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-3">Audio Output</p>
                 <DeviceSelector role="receiver" videoRef={remoteVideoRef} />
               </div>
 
               {/* Fullscreen */}
-              <div className="pt-5 border-t border-[#2a2a2a]">
+              <div className="pt-5 border-t border-[#e8e0f5]">
                 <button
                   onClick={isFullscreen ? exitFullscreen : enterFullscreen}
                   className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] text-white font-semibold py-2.5 rounded-lg transition-colors text-sm flex items-center justify-center gap-2"
@@ -321,7 +321,7 @@ export default function ReceiverView({ roomId, onLeave }) {
             </div>
 
             {onLeave && (
-              <div className="p-5 border-t border-[#2a2a2a]">
+              <div className="p-5 border-t border-[#e8e0f5]">
                 <button
                   onClick={onLeave}
                   className="w-full bg-transparent border border-red-600/50 hover:border-red-500 hover:bg-red-600/10 text-red-400 hover:text-red-300 font-semibold py-2.5 rounded-xl transition-all text-sm"
