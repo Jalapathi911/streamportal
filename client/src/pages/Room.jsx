@@ -55,11 +55,11 @@ function IconFaceToFace() {
 
 function RoundButton({ onClick, icon, label }) {
   return (
-    <button onClick={onClick} className="flex flex-col items-center gap-3 group">
-      <div className="w-[104px] h-[104px] rounded-full bg-[#8B2BE2] flex items-center justify-center shadow-xl shadow-[#8B2BE2]/25 group-hover:bg-[#7B1BD2] group-active:scale-95 transition-all duration-150">
+    <button onClick={onClick} className="flex flex-col items-center gap-3 lg:gap-5 group">
+      <div className="w-[104px] h-[104px] lg:w-[190px] lg:h-[190px] rounded-full bg-[#8B2BE2] flex items-center justify-center shadow-xl shadow-[#8B2BE2]/25 group-hover:bg-[#7B1BD2] group-active:scale-95 transition-all duration-150 [&_svg]:w-[38px] [&_svg]:h-[38px] lg:[&_svg]:w-[68px] lg:[&_svg]:h-[68px]">
         {icon}
       </div>
-      <span className="text-gray-900 font-semibold text-xs tracking-widest uppercase">{label}</span>
+      <span className="text-gray-900 font-semibold text-xs lg:text-sm tracking-widest uppercase">{label}</span>
     </button>
   );
 }
@@ -166,22 +166,22 @@ export default function Room() {
     return <SpectatorView roomId={roomId} onLeave={handleLeaveBroadcast} />;
 
   return (
-    <div className="min-h-screen flex flex-col items-center bg-[#f8f5ff] px-6 pt-14 pb-10">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f5ff] px-6 py-10">
 
       {/* Logo */}
-      <div className="flex flex-col items-center mb-10">
-        <img src="/holobox911-logo.png" alt="HoloBox911" className="w-56 object-contain mb-2" />
-        <p className="text-[#8B2BE2] text-xs font-semibold tracking-widest uppercase mb-4">Live stream</p>
+      <div className="flex flex-col items-center mb-10 lg:mb-16">
+        <img src="/holobox911-logo.png" alt="HoloBox911" className="w-56 lg:w-80 object-contain mb-2" />
+        <p className="text-[#8B2BE2] text-xs lg:text-sm font-semibold tracking-widest uppercase mb-4">Live stream</p>
 
-        <p className="text-gray-500 text-sm font-medium">Let's Explore</p>
+        <p className="text-gray-500 text-sm lg:text-base font-medium">Let's Explore</p>
         <div className="flex items-center gap-2 mt-2">
           <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-400" />
-          <span className="text-gray-500 text-xs">{room.name}</span>
+          <span className="text-gray-500 text-xs lg:text-sm">{room.name}</span>
         </div>
       </div>
 
       {/* Buttons — 2×2 grid */}
-      <div className="grid grid-cols-2 gap-8 w-full max-w-xs">
+      <div className="grid grid-cols-2 gap-8 lg:gap-16 w-full max-w-xs lg:max-w-lg">
         <RoundButton
           onClick={() => handleJoinBroadcast('sender')}
           icon={<IconStreamer />}
