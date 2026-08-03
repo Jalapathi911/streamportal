@@ -163,7 +163,7 @@ export default function SenderView({ roomId, onLeave }) {
   return (
     <div className="min-h-screen bg-[#f8f5ff] flex flex-col items-center justify-center p-4">
       {/* Portrait video container */}
-      <div className="relative" style={{ width: '100%', maxWidth: '320px', aspectRatio: '9/16' }}>
+      <div className="relative" style={{ width: '100%', maxWidth: 'min(540px, calc(100vw - 2rem))', aspectRatio: '9/16' }}>
         <div className="w-full h-full bg-[#141414] border border-[#e8e0f5] rounded-xl overflow-hidden relative">
           <video ref={localVideoRef} autoPlay muted playsInline style={previewStyle} />
           {!rawStream && (
