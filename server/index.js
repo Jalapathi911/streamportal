@@ -115,7 +115,8 @@ io.on('connection', (socket) => {
     const slots = roomSockets[roomId];
 
     if (role === 'spectator') {
-      const expected = process.env.SPECTATOR_PASSWORD || 'spectator123';
+      const expected = process.env.AdminView_PASSWORD;
+      if (!expected) { socket.emit('spectator-auth-failed'); return; }
       if (password !== expected) {
         socket.emit('spectator-auth-failed');
         console.log(`[socket] spectator wrong password roomId=${roomId}`);
