@@ -39,10 +39,13 @@ const SpeakerOffIcon = () => (
 );
 
 export default function ReceiverView({ roomId, onLeave }) {
-  const remoteVideoRef = useRef(null);
-  const containerRef   = useRef(null);
-  const hideTimerRef   = useRef(null);
+  const remoteVideoRef  = useRef(null);
+  const localPreviewRef = useRef(null);
+  const containerRef    = useRef(null);
+  const hideTimerRef    = useRef(null);
 
+  const [localStream,        setLocalStream]        = useState(null);
+  const [micMuted,           setMicMuted]           = useState(false);
   const [senderDisconnected, setSenderDisconnected] = useState(false);
   const [speakerMuted,       setSpeakerMuted]       = useState(false);
   const [displayRotation,    setDisplayRotation]    = useState(0);
@@ -52,8 +55,27 @@ export default function ReceiverView({ roomId, onLeave }) {
   const [flipped,            setFlipped]            = useState(false);
   const [showSettings,       setShowSettings]       = useState(false);
 
-  const { hasRemoteVideo, connectionState, iceGatheringState, setSpeakerMuted: setSpeakerMutedFn } = useWebRTC({
-    role: 'receiver', roomId, localStream: null, remoteVideoRef,
+  // Acquire own camera so spectators can see the viewer's feed
+  useEffect(() => {
+    let stream = null;
+    const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    navigator.mediaDevices.getUserMedia({
+      video: mobile
+        ? { facingMode: 'user', width: { ideal: 720 }, height: { ideal: 1280 } }
+        : { width: { ideal: 1280 }, height: { ideal: 720 } },
+      audio: true,
+    }).then((s) => { stream = s; setLocalStream(s); }).catch(() => {});
+    return () => stream?.getTracks().forEach((t) => t.stop());
+  }, []);
+
+  useEffect(() => {
+    if (localPreviewRef.current && localStream) {
+      localPreviewRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
+  const { hasRemoteVideo, connectionState, iceGatheringState, setSpeakerMuted: setSpeakerMutedFn, setMicMuted: setMicMutedFn } = useWebRTC({
+    role: 'receiver', roomId, localStream, remoteVideoRef,
   });
 
   useEffect(() => {
@@ -70,6 +92,12 @@ export default function ReceiverView({ roomId, onLeave }) {
     const next = !speakerMuted;
     setSpeakerMuted(next);
     setSpeakerMutedFn(next);
+  }
+
+  function handleMicMute() {
+    const next = !micMuted;
+    setMicMuted(next);
+    setMicMutedFn(next);
   }
 
   useEffect(() => {
@@ -142,6 +170,13 @@ export default function ReceiverView({ roomId, onLeave }) {
           </div>
         )}
 
+        {/* Own camera PiP (visible to spectators) */}
+        {localStream && (
+          <div className="absolute bottom-12 left-3 z-10 w-16 rounded-lg overflow-hidden border border-[#2a2a2a] shadow-lg" style={{ aspectRatio: '3/4' }}>
+            <video ref={localPreviewRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+          </div>
+        )}
+
         {/* Gear icon — top-right corner */}
         <button
           onClick={(e) => { e.stopPropagation(); setShowSettings((s) => !s); }}
@@ -176,17 +211,37 @@ export default function ReceiverView({ roomId, onLeave }) {
               {/* Audio */}
               <div>
                 <p className="text-[#a78bfa] text-xs font-semibold mb-3">Audio</p>
-                <button
-                  onClick={handleSpeakerMute}
-                  className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
-                    speakerMuted
-                      ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
-                      : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
-                  }`}
-                >
-                  {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
-                  {speakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
-                </button>
+                <div className="space-y-2">
+                  <button
+                    onClick={handleSpeakerMute}
+                    className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
+                      speakerMuted
+                        ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
+                        : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                    }`}
+                  >
+                    {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
+                    {speakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
+                  </button>
+                  {localStream && (
+                    <button
+                      onClick={handleMicMute}
+                      className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors border ${
+                        micMuted
+                          ? 'bg-red-600 border-red-600 text-white hover:bg-red-500'
+                          : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#888] hover:border-[#7c3aed] hover:text-white'
+                      }`}
+                    >
+                      <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24">
+                        {micMuted
+                          ? <path d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3 3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z" />
+                          : <path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z" />
+                        }
+                      </svg>
+                      {micMuted ? 'Mic Muted' : 'Mute Mic'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Feed Size + Flip */}

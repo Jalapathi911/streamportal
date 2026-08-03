@@ -81,13 +81,12 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
         client.on('user-left',   () => setViewerCount((n) => Math.max(0, n - 1)));
       }
 
-      const agoraRole = role === 'sender' ? 'host' : 'audience';
-      const opts      = role === 'receiver' ? { level: 1 } : undefined;
-      await client.setClientRole(agoraRole, opts);
+      const agoraRole = (role === 'sender' || role === 'receiver') ? 'host' : 'audience';
+      await client.setClientRole(agoraRole);
       await client.join(appId, roomId, token || null, null);
       joinedRef.current = true;
 
-      if (role === 'sender') await publishStream(client, localStreamRef.current);
+      if (role === 'sender' || role === 'receiver') await publishStream(client, localStreamRef.current);
     }
 
     init().catch(console.error);
@@ -103,7 +102,7 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
 
   // Replace published tracks when localStream changes (sender only)
   useEffect(() => {
-    if (role !== 'sender' || !localStream || !joinedRef.current) return;
+    if (!['sender', 'receiver'].includes(role) || !localStream || !joinedRef.current) return;
     const client = clientRef.current;
     if (!client || client.connectionState !== 'CONNECTED') return;
 

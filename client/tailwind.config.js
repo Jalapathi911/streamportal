@@ -4,11 +4,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        bg: '#0a0a0a',
-        card: '#141414',
-        border: '#2a2a2a',
-        accent: '#7c3aed',
-        'text-muted': '#888888',
+        bg: '#ffffff',
+        'bg-soft': '#faf8ff',
+        card: '#faf8ff',
+        border: '#e9e0f5',
+        accent: '#8B2BE2',
+        'accent-hover': '#7B1BD2',
+        'accent-light': '#f3e8ff',
+        'text-primary': '#1f1235',
+        'text-muted': '#6b7280',
       },
     },
   },

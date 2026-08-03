@@ -5,14 +5,75 @@ import socket from '../utils/socket.js';
 import MeetingView from '../components/MeetingView.jsx';
 import SenderView from '../components/SenderView.jsx';
 import ReceiverView from '../components/ReceiverView.jsx';
+import SpectatorView from '../components/SpectatorView.jsx';
+
+
+function IconStreamer() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="5" fill="white" />
+      <path d="M15 33 Q9 24 15 15" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M33 15 Q39 24 33 33" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <path d="M9 39 Q2 24 9 9"   stroke="white" strokeWidth="2"   strokeLinecap="round" opacity="0.55" />
+      <path d="M39 9 Q46 24 39 39" stroke="white" strokeWidth="2"   strokeLinecap="round" opacity="0.55" />
+    </svg>
+  );
+}
+
+function IconViewer() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 48 48" fill="none">
+      <rect x="4" y="10" width="40" height="28" rx="3" stroke="white" strokeWidth="2.5" />
+      <line x1="16" y1="38" x2="32" y2="38" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="24" y1="38" x2="24" y2="44" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <polygon points="20,17 20,31 34,24" fill="white" />
+    </svg>
+  );
+}
+
+function IconSpectator() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 48 48" fill="none">
+      <path d="M24 10 C10 10 2 24 2 24 C2 24 10 38 24 38 C38 38 46 24 46 24 C46 24 38 10 24 10 Z"
+            stroke="white" strokeWidth="2.5" fill="none" strokeLinejoin="round"/>
+      <circle cx="24" cy="24" r="7" stroke="white" strokeWidth="2.5" fill="none"/>
+      <circle cx="24" cy="24" r="3" fill="white"/>
+    </svg>
+  );
+}
+
+function IconFaceToFace() {
+  return (
+    <svg width="38" height="38" viewBox="0 0 48 48" fill="none">
+      <circle cx="14" cy="16" r="6" stroke="white" strokeWidth="2.5" />
+      <path d="M3 40 C3 31 8 27 14 27 C20 27 25 31 25 40" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="34" cy="16" r="6" stroke="white" strokeWidth="2.5" />
+      <path d="M23 40 C23 31 28 27 34 27 C40 27 45 31 45 40" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function RoundButton({ onClick, icon, label }) {
+  return (
+    <button onClick={onClick} className="flex flex-col items-center gap-3 group">
+      <div className="w-[104px] h-[104px] rounded-full bg-[#8B2BE2] flex items-center justify-center shadow-xl shadow-[#8B2BE2]/25 group-hover:bg-[#7B1BD2] group-active:scale-95 transition-all duration-150">
+        {icon}
+      </div>
+      <span className="text-white font-semibold text-xs tracking-widest uppercase">{label}</span>
+    </button>
+  );
+}
 
 export default function Room() {
   const { roomId } = useParams();
   const [room,          setRoom]          = useState(null);
   const [notFound,      setNotFound]      = useState(false);
   const [inMeeting,     setInMeeting]     = useState(false);
-  const [broadcastRole, setBroadcastRole] = useState(null); // 'sender' | 'receiver' | null
-  const [joinError,     setJoinError]     = useState('');
+  const [broadcastRole, setBroadcastRole] = useState(null);
+  const [joinError,          setJoinError]          = useState('');
+  const [showSpectatorModal, setShowSpectatorModal] = useState(false);
+  const [spectatorPassword,  setSpectatorPassword]  = useState('');
+  const [spectatorError,     setSpectatorError]     = useState('');
 
   useEffect(() => {
     apiFetch(`/api/rooms/${roomId}`)
@@ -38,7 +99,21 @@ export default function Room() {
       setInMeeting(false);
     });
 
-    return () => { socket.off('role-taken'); socket.off('room-full'); };
+    socket.on('spectator-auth-failed', () => {
+      setSpectatorError('Wrong password. Try again.');
+    });
+
+    socket.on('spectator-joined', () => {
+      setShowSpectatorModal(false);
+      setBroadcastRole('spectator');
+    });
+
+    return () => {
+      socket.off('role-taken');
+      socket.off('room-full');
+      socket.off('spectator-auth-failed');
+      socket.off('spectator-joined');
+    };
   }, [roomId]);
 
   function handleJoinBroadcast(role) {
@@ -52,10 +127,16 @@ export default function Room() {
     setBroadcastRole(null);
   }
 
+  function handleSpectatorSubmit(e) {
+    e.preventDefault();
+    setSpectatorError('');
+    socket.emit('join-room', { roomId, role: 'spectator', password: spectatorPassword });
+  }
+
   if (notFound) return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-6">
       <div className="text-center">
-        <p className="text-2xl font-bold text-white mb-2">Room not found</p>
+        <p className="text-xl font-bold text-white mb-2">Room not found</p>
         <p className="text-[#888] text-sm">This room may have been deleted or the link is invalid.</p>
       </div>
     </div>
@@ -63,7 +144,12 @@ export default function Room() {
 
   if (!room) return (
     <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <p className="text-[#888]">Loading room…</p>
+      <div className="flex items-center gap-2 text-[#888] text-sm">
+        <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+        </svg>
+        Loading…
+      </div>
     </div>
   );
 
@@ -76,44 +162,98 @@ export default function Room() {
   if (broadcastRole === 'receiver')
     return <ReceiverView roomId={roomId} onLeave={handleLeaveBroadcast} />;
 
+  if (broadcastRole === 'spectator')
+    return <SpectatorView roomId={roomId} onLeave={handleLeaveBroadcast} />;
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#0a0a0a] p-8">
-      <h1 className="text-2xl font-bold text-white mb-2">{room.name}</h1>
-      <p className="text-[#888] text-sm mb-10">Choose how you want to join</p>
+    <div className="min-h-screen flex flex-col items-center bg-[#0a0a0a] px-6 pt-14 pb-10">
 
-      <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
-        {/* Go Live — broadcast sender */}
-        <button
-          onClick={() => handleJoinBroadcast('sender')}
-          className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
-        >
-          <div className="text-3xl mb-3">📡</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Streamer</div>
-          <div className="text-[#888] text-sm">Broadcast your camera to a viewer</div>
-        </button>
+      {/* Logo */}
+      <div className="flex flex-col items-center mb-10">
+        <img src="/holobox911-logo.png" alt="HoloBox911" className="w-56 object-contain mb-2" />
+        <p className="text-[#8B2BE2] text-xs font-semibold tracking-widest uppercase mb-4">Live stream</p>
 
-        {/* Watch — broadcast receiver */}
-        <button
-          onClick={() => handleJoinBroadcast('receiver')}
-          className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
-        >
-          <div className="text-3xl mb-3">📺</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Viewer</div>
-          <div className="text-[#888] text-sm">View the live broadcast</div>
-        </button>
-
-        {/* Join Meeting — 1-on-1 */}
-        <button
-          onClick={() => { setJoinError(''); setInMeeting(true); }}
-          className="flex-1 bg-[#141414] border border-[#2a2a2a] hover:border-[#7c3aed] rounded-2xl p-8 text-left transition-all group"
-        >
-          <div className="text-3xl mb-3">🎥</div>
-          <div className="text-white font-semibold text-lg mb-1 group-hover:text-[#a78bfa]">Face to Face</div>
-          <div className="text-[#888] text-sm">Private face-to-face video call</div>
-        </button>
+        <p className="text-[#888] text-sm font-medium">Let's Explore</p>
+        <div className="flex items-center gap-2 mt-2">
+          <span className="w-2 h-2 rounded-full bg-green-500 shadow-sm shadow-green-400" />
+          <span className="text-[#888] text-xs">{room.name}</span>
+        </div>
       </div>
 
-      {joinError && <p className="mt-6 text-red-400 text-sm text-center">{joinError}</p>}
+      {/* Buttons — 2×2 grid */}
+      <div className="grid grid-cols-2 gap-8 w-full max-w-xs">
+        <RoundButton
+          onClick={() => handleJoinBroadcast('sender')}
+          icon={<IconStreamer />}
+          label="Streamer"
+        />
+        <RoundButton
+          onClick={() => handleJoinBroadcast('receiver')}
+          icon={<IconViewer />}
+          label="Viewer"
+        />
+        <RoundButton
+          onClick={() => { setJoinError(''); setInMeeting(true); }}
+          icon={<IconFaceToFace />}
+          label="Face to Face"
+        />
+        <RoundButton
+          onClick={() => { setJoinError(''); setSpectatorError(''); setSpectatorPassword(''); setShowSpectatorModal(true); }}
+          icon={<IconSpectator />}
+          label="Spectator"
+        />
+      </div>
+
+      {joinError && (
+        <p className="mt-8 text-red-500 text-sm text-center max-w-xs">{joinError}</p>
+      )}
+
+      {/* Spectator password modal */}
+      {showSpectatorModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+            onClick={() => setShowSpectatorModal(false)}
+          />
+          <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm px-4">
+            <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8">
+              <div className="flex flex-col items-center mb-6">
+                <IconSpectator />
+                <p className="text-white font-semibold text-lg mt-4">Spectator Access</p>
+                <p className="text-[#888] text-sm mt-1 text-center">Enter the password to watch all feeds</p>
+              </div>
+              <form onSubmit={handleSpectatorSubmit} className="space-y-4">
+                <input
+                  type="password"
+                  value={spectatorPassword}
+                  onChange={(e) => setSpectatorPassword(e.target.value)}
+                  placeholder="Password"
+                  autoFocus
+                  className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+                />
+                {spectatorError && (
+                  <p className="text-red-500 text-sm text-center">{spectatorError}</p>
+                )}
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSpectatorModal(false)}
+                    className="flex-1 py-2.5 rounded-xl border border-[#2a2a2a] text-[#888] text-sm font-semibold hover:text-white hover:border-[#555] transition-all"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 rounded-xl bg-[#8B2BE2] hover:bg-[#7B1BD2] text-white font-semibold text-sm transition-all shadow-lg shadow-[#8B2BE2]/20"
+                  >
+                    Join
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

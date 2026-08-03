@@ -59,7 +59,7 @@ app.get('/api/agora-token', (req, res) => {
 
   const { channel = '', role = 'receiver' } = req.query;
   const expire = 86400; // 24 hours in seconds
-  const agoraRole = role === 'sender' ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
+  const agoraRole = (role === 'sender' || role === 'receiver') ? RtcRole.PUBLISHER : RtcRole.SUBSCRIBER;
   const token = RtcTokenBuilder.buildTokenWithUid(appId, certificate, channel, 0, agoraRole, expire, expire);
 
   res.json({ token, appId });
@@ -106,13 +106,28 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('join-room', ({ roomId, role }) => {
+  socket.on('join-room', ({ roomId, role, password }) => {
     console.log(`[socket] join-room roomId=${roomId} role=${role} socket=${socket.id}`);
 
     if (!roomSockets[roomId]) {
-      roomSockets[roomId] = { sender: null, receiver: null, participant1: null, participant2: null };
+      roomSockets[roomId] = { sender: null, receiver: null, participant1: null, participant2: null, spectators: [] };
     }
     const slots = roomSockets[roomId];
+
+    if (role === 'spectator') {
+      const expected = process.env.SPECTATOR_PASSWORD || 'spectator123';
+      if (password !== expected) {
+        socket.emit('spectator-auth-failed');
+        console.log(`[socket] spectator wrong password roomId=${roomId}`);
+        return;
+      }
+      if (!slots.spectators) slots.spectators = [];
+      slots.spectators.push(socket.id);
+      socket.join(roomId);
+      socket.emit('spectator-joined');
+      console.log(`[socket] spectator joined room ${roomId}`);
+      return;
+    }
 
     if (role === 'participant') {
       if (!slots.participant1) {
@@ -166,6 +181,13 @@ io.on('connection', (socket) => {
         updateRoom(roomId, { receiverJoined: false });
         if (slots.sender) io.to(slots.sender).emit('peer-disconnected', { role: 'receiver' });
         console.log(`[socket] receiver left room ${roomId}`);
+      }
+      if (slots.spectators) {
+        const idx = slots.spectators.indexOf(socketId);
+        if (idx !== -1) {
+          slots.spectators.splice(idx, 1);
+          console.log(`[socket] spectator left room ${roomId}`);
+        }
       }
     }
   }

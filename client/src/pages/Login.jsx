@@ -2,32 +2,26 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/api.js';
 
+
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
-      const res = await apiFetch('/api/login', {
-        method: 'POST',
+      const res  = await apiFetch('/api/login', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body:    JSON.stringify({ username, password }),
       });
-
       const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'Login failed');
-        return;
-      }
-
+      if (!res.ok) { setError(data.error || 'Login failed'); return; }
       localStorage.setItem('token', data.token);
       navigate('/dashboard');
     } catch {
@@ -38,49 +32,59 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
-      <div className="w-full max-w-sm bg-[#141414] border border-[#2a2a2a] rounded-xl p-8">
-        <h1 className="text-2xl font-bold text-white text-center mb-2">StreamPortal</h1>
-        <p className="text-[#888] text-sm text-center mb-8">Admin Login</p>
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] px-4">
+      <div className="w-full max-w-sm">
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm text-[#888] mb-1">Username</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoFocus
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-white placeholder-[#555] focus:outline-none focus:border-[#7c3aed] transition-colors"
-              placeholder="admin"
-            />
-          </div>
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-10">
+          <img src="/holobox911-logo.png" alt="HoloBox911" className="w-52 object-contain mb-3" />
+          <p className="text-[#8B2BE2] text-xs font-semibold tracking-widest uppercase">Live stream</p>
+          <p className="text-[#888] text-sm mt-4">Admin Login</p>
+        </div>
 
-          <div>
-            <label className="block text-sm text-[#888] mb-1">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-white placeholder-[#555] focus:outline-none focus:border-[#7c3aed] transition-colors"
-              placeholder="••••••••"
-            />
-          </div>
+        {/* Card */}
+        <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold text-[#888] mb-1.5 uppercase tracking-wider">
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                autoFocus
+                placeholder="admin"
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+              />
+            </div>
 
-          {error && (
-            <p className="text-red-400 text-sm">{error}</p>
-          )}
+            <div>
+              <label className="block text-xs font-semibold text-[#888] mb-1.5 uppercase tracking-wider">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full bg-[#0a0a0a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white placeholder-[#444] focus:outline-none focus:border-[#8B2BE2] focus:ring-2 focus:ring-[#8B2BE2]/10 transition-all"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 rounded-lg transition-colors"
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
+            {error && <p className="text-red-400 text-sm">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#8B2BE2] hover:bg-[#7B1BD2] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-[#8B2BE2]/20"
+            >
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
