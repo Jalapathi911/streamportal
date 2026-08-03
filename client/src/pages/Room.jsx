@@ -200,7 +200,7 @@ export default function Room() {
         <RoundButton
           onClick={() => { setJoinError(''); setSpectatorError(''); setSpectatorPassword(''); setShowSpectatorModal(true); }}
           icon={<IconSpectator />}
-          label="Spectator"
+          label="Admin View"
         />
       </div>
 
@@ -219,8 +219,8 @@ export default function Room() {
             <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8">
               <div className="flex flex-col items-center mb-6">
                 <IconSpectator />
-                <p className="text-white font-semibold text-lg mt-4">Spectator Access</p>
-                <p className="text-[#888] text-sm mt-1 text-center">Enter the password to watch all feeds</p>
+                <p className="text-white font-semibold text-lg mt-4">Admin View</p>
+                <p className="text-[#888] text-sm mt-1 text-center">Enter the password to access admin view</p>
               </div>
               <form onSubmit={handleSpectatorSubmit} className="space-y-4">
                 <input

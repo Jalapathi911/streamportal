@@ -46,6 +46,8 @@ export default function ReceiverView({ roomId, onLeave }) {
 
   const [localStream,        setLocalStream]        = useState(null);
   const [micMuted,           setMicMuted]           = useState(false);
+  const [adminMutedMic,      setAdminMutedMic]      = useState(false);
+  const [adminMutedSpeaker,  setAdminMutedSpeaker]  = useState(false);
   const [senderDisconnected, setSenderDisconnected] = useState(false);
   const [speakerMuted,       setSpeakerMuted]       = useState(false);
   const [displayRotation,    setDisplayRotation]    = useState(0);
@@ -99,6 +101,24 @@ export default function ReceiverView({ roomId, onLeave }) {
     setMicMuted(next);
     setMicMutedFn(next);
   }
+
+  // Admin remote-mute listener
+  useEffect(() => {
+    function onAdminControl({ type, muted }) {
+      if (type === 'mic') {
+        setMicMuted(muted);
+        setAdminMutedMic(muted);
+        setMicMutedFn(muted);
+      }
+      if (type === 'speaker') {
+        setSpeakerMuted(muted);
+        setAdminMutedSpeaker(muted);
+        setSpeakerMutedFn(muted);
+      }
+    }
+    socket.on('admin-control', onAdminControl);
+    return () => socket.off('admin-control', onAdminControl);
+  }, [setMicMutedFn, setSpeakerMutedFn]);
 
   useEffect(() => {
     const onChange = () => {
@@ -223,6 +243,9 @@ export default function ReceiverView({ roomId, onLeave }) {
                     {speakerMuted ? <SpeakerOffIcon /> : <SpeakerOnIcon />}
                     {speakerMuted ? 'Speaker Muted' : 'Mute Speaker'}
                   </button>
+                  {adminMutedSpeaker && (
+                    <p className="text-center text-xs text-red-400 font-semibold tracking-wide">Admin has muted your speaker</p>
+                  )}
                   {localStream && (
                     <button
                       onClick={handleMicMute}
@@ -240,6 +263,9 @@ export default function ReceiverView({ roomId, onLeave }) {
                       </svg>
                       {micMuted ? 'Mic Muted' : 'Mute Mic'}
                     </button>
+                  )}
+                  {adminMutedMic && (
+                    <p className="text-center text-xs text-red-400 font-semibold tracking-wide">Admin has muted your mic</p>
                   )}
                 </div>
               </div>

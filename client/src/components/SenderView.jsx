@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useWebRTC } from '../hooks/useWebRTC.js';
+import socket from '../utils/socket.js';
 import DebugOverlay from './DebugOverlay.jsx';
 import RotationControl from './RotationControl.jsx';
 import DeviceSelector from './DeviceSelector.jsx';
@@ -75,6 +76,7 @@ export default function SenderView({ roomId, onLeave }) {
   const [rawStream,       setRawStream]       = useState(null);
   const [mediaError,      setMediaError]      = useState('');
   const [micMuted,        setMicMuted]        = useState(false);
+  const [adminMutedMic,   setAdminMutedMic]   = useState(false);
   const [showSettings,    setShowSettings]    = useState(false);
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewFlipped,  setPreviewFlipped]  = useState(false);
@@ -117,6 +119,19 @@ export default function SenderView({ roomId, onLeave }) {
     setMicMuted(next);
     setMicMutedFn(next);
   }
+
+  // Admin remote-mute listener
+  useEffect(() => {
+    function onAdminControl({ type, muted }) {
+      if (type === 'mic') {
+        setMicMuted(muted);
+        setAdminMutedMic(muted);
+        setMicMutedFn(muted);
+      }
+    }
+    socket.on('admin-control', onAdminControl);
+    return () => socket.off('admin-control', onAdminControl);
+  }, [setMicMutedFn]);
 
   const { isRecording, timer, startRecording, stopRecording } = useRecording(rawStream, roomId);
 
@@ -210,6 +225,9 @@ export default function SenderView({ roomId, onLeave }) {
                   {micMuted ? <MicOffIcon /> : <MicOnIcon />}
                   {micMuted ? 'Mic Muted' : 'Mute Mic'}
                 </button>
+                {adminMutedMic && (
+                  <p className="mt-2 text-center text-xs text-red-400 font-semibold tracking-wide">Admin has muted your mic</p>
+                )}
               </div>
 
               {/* Preview rotation (CSS display only — raw stream sent to viewers) */}

@@ -192,6 +192,17 @@ io.on('connection', (socket) => {
     }
   }
 
+  // Admin remote-mute relay — only spectators can send this
+  socket.on('admin-control', ({ roomId, target, type, muted }) => {
+    const slots = roomSockets[roomId];
+    if (!slots || !slots.spectators?.includes(socket.id)) return;
+    const targetSocketId = slots[target]; // 'sender' or 'receiver'
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('admin-control', { type, muted });
+      console.log(`[socket] admin-control → ${target} type=${type} muted=${muted}`);
+    }
+  });
+
   socket.on('leave-room', () => {
     console.log(`[socket] leave-room socket=${socket.id}`);
     clearSocketFromRooms(socket.id);
