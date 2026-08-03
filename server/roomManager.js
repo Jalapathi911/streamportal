@@ -2,7 +2,7 @@ const { randomUUID } = require('crypto');
 
 const rooms = new Map();
 
-function createRoom(name) {
+function createRoom(name, bytesLimit = 0) {
   const id = randomUUID().slice(0, 8);
   const room = {
     id,
@@ -11,6 +11,7 @@ function createRoom(name) {
     senderJoined: false,
     receiverJoined: false,
     bytesUsed: 0,
+    bytesLimit: Math.max(0, Number(bytesLimit) || 0),
   };
   rooms.set(id, room);
   return room;

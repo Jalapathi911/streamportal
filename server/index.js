@@ -67,12 +67,21 @@ app.get('/api/agora-token', (req, res) => {
 
 // Room routes (protected)
 app.post('/api/rooms', verifyToken, (req, res) => {
-  const { name } = req.body;
+  const { name, bytesLimit } = req.body;
   if (!name || !name.trim()) {
     return res.status(400).json({ error: 'Room name is required' });
   }
-  const room = createRoom(name.trim());
+  const room = createRoom(name.trim(), bytesLimit);
   res.status(201).json(room);
+});
+
+app.patch('/api/rooms/:id', verifyToken, (req, res) => {
+  const room = getRoom(req.params.id);
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  const { bytesLimit } = req.body;
+  const updates = {};
+  if (typeof bytesLimit === 'number') updates.bytesLimit = Math.max(0, bytesLimit);
+  res.json(updateRoom(req.params.id, updates));
 });
 
 app.get('/api/rooms', verifyToken, (req, res) => {
