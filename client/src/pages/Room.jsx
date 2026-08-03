@@ -59,7 +59,7 @@ function RoundButton({ onClick, icon, label }) {
       <div className="w-[104px] h-[104px] rounded-full bg-[#8B2BE2] flex items-center justify-center shadow-xl shadow-[#8B2BE2]/25 group-hover:bg-[#7B1BD2] group-active:scale-95 transition-all duration-150">
         {icon}
       </div>
-      <span className="text-white font-semibold text-xs tracking-widest uppercase">{label}</span>
+      <span className="text-gray-900 font-semibold text-xs tracking-widest uppercase">{label}</span>
     </button>
   );
 }
