@@ -142,17 +142,19 @@ export function useWebRTC({ role, roomId, localStream, remoteVideoRef }) {
     replaceStream().catch(console.error);
   }, [localStream, role]);
 
-  // Bandwidth tracking
+  // Bandwidth + resolution tracking (every 5 s)
   useEffect(() => {
     const interval = setInterval(() => {
       const client = clientRef.current;
       if (!client || client.connectionState !== 'CONNECTED') return;
       const stats = client.getRTCStats();
       const deltaBytes = Math.round(((stats.SendBitrate || 0) + (stats.RecvBitrate || 0)) * 5 / 8);
-      if (deltaBytes > 0) socket.emit('webrtc-stats', { roomId, deltaBytes });
+      const vTrack = localStreamRef.current?.getVideoTracks()[0];
+      const { width = 0, height = 0 } = vTrack?.getSettings() || {};
+      socket.emit('webrtc-stats', { roomId, deltaBytes, width, height, role });
     }, 5000);
     return () => clearInterval(interval);
-  }, [roomId]);
+  }, [roomId, role]);
 
   const setMicMuted = useCallback((muted) => {
     audioTrackRef.current?.setEnabled(!muted);

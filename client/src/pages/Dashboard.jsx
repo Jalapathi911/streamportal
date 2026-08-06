@@ -2,6 +2,20 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../utils/api.js';
 
+const TIER_LABEL  = { 'audio': 'Audio', 'hd': 'HD', 'full-hd': 'Full HD', '2k': '2K', '2k+': '2K+' };
+const TIER_COLOR  = { 'audio': 'bg-gray-200 text-gray-600', 'hd': 'bg-green-100 text-green-700', 'full-hd': 'bg-blue-100 text-blue-700', '2k': 'bg-orange-100 text-orange-700', '2k+': 'bg-red-100 text-red-700' };
+const TIER_PRICE  = { 'audio': 0.99, 'hd': 3.99, 'full-hd': 8.99, '2k': 15.99, '2k+': 35.99 };
+
+function fmtSeconds(s) {
+  if (!s) return '—';
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${sec}s`;
+  return `${sec}s`;
+}
+
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
   if (diff < 60)    return 'just now';
@@ -68,6 +82,7 @@ export default function Dashboard() {
   const [limitModal,     setLimitModal]     = useState(null);
   const [modalValue,     setModalValue]     = useState('');
   const [modalUnit,      setModalUnit]      = useState('GB');
+  const [usageData,      setUsageData]      = useState(null);
   const navigate = useNavigate();
 
   const token = localStorage.getItem('token');
@@ -75,7 +90,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (!token) { navigate('/login'); return; }
     fetchRooms();
-    const interval = setInterval(fetchRooms, 5000);
+    fetchUsage();
+    const interval = setInterval(() => { fetchRooms(); fetchUsage(); }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -85,6 +101,13 @@ export default function Dashboard() {
     const res = await apiFetch('/api/rooms', { headers: { Authorization: `Bearer ${token}` } });
     if (res.status === 401) { navigate('/login'); return; }
     setRooms(await res.json());
+  }
+
+  async function fetchUsage() {
+    try {
+      const res = await apiFetch('/api/usage', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setUsageData(await res.json());
+    } catch { /* non-critical */ }
   }
 
   async function createRoom(e) {
@@ -163,7 +186,56 @@ export default function Dashboard() {
       <main className="flex-1 p-8 overflow-auto">
         <div className="max-w-5xl">
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Rooms</h1>
-          <p className="text-gray-500 text-sm mb-8">Create and manage your live stream rooms</p>
+          <p className="text-gray-500 text-sm mb-6">Create and manage your live stream rooms</p>
+
+          {/* Agora Free Tier Panel */}
+          {usageData && (
+            <div className="bg-white border border-[#e8e0f5] rounded-2xl p-5 mb-6 max-w-2xl shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <p className="text-gray-900 font-semibold text-sm">Agora Free Tier — {usageData.month}</p>
+                  <p className="text-gray-400 text-xs mt-0.5">10,000 min/month free · per participant · resets on server restart</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-900 font-mono text-sm font-semibold">{usageData.totalMinutes.toLocaleString()} <span className="text-gray-400 font-normal">/ 10,000 min</span></p>
+                  {usageData.estimatedCostUSD > 0 && (
+                    <p className="text-orange-600 text-xs font-semibold">Est. ${usageData.estimatedCostUSD} over free tier</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Free tier progress bar */}
+              {(() => {
+                const pct = Math.min((usageData.totalMinutes / usageData.freeTierLimit) * 100, 100);
+                const barColor = pct >= 100 ? 'bg-red-500' : pct >= 80 ? 'bg-orange-400' : 'bg-[#8B2BE2]';
+                return (
+                  <div className="mb-3">
+                    <div className="h-2 bg-[#e8e0f5] rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <div className="flex justify-between mt-1">
+                      <span className="text-gray-400 text-xs">{usageData.remainingFree.toLocaleString()} min remaining</span>
+                      <span className="text-gray-400 text-xs">{pct.toFixed(1)}% used</span>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Per-tier breakdown */}
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(usageData.tiers).map(([tier, mins]) => mins > 0 && (
+                  <div key={tier} className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${TIER_COLOR[tier]}`}>
+                    <span>{TIER_LABEL[tier]}</span>
+                    <span className="opacity-70">{mins.toFixed(1)} min</span>
+                    <span className="opacity-50">· ${((mins / 1000) * TIER_PRICE[tier]).toFixed(3)}</span>
+                  </div>
+                ))}
+                {Object.values(usageData.tiers).every(v => v === 0) && (
+                  <span className="text-gray-400 text-xs">No usage recorded yet — start a session to see data.</span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Create Room */}
           <div className="bg-white border border-[#e8e0f5] rounded-2xl p-6 mb-8 max-w-2xl shadow-sm">
@@ -209,10 +281,10 @@ export default function Dashboard() {
           {/* Room List */}
           <div className="bg-white border border-[#e8e0f5] rounded-2xl overflow-hidden shadow-sm">
             <div
-              className="grid gap-4 px-6 py-3 border-b border-[#e8e0f5] text-gray-400 text-xs uppercase tracking-wider"
-              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 2fr' }}
+              className="grid gap-3 px-6 py-3 border-b border-[#e8e0f5] text-gray-400 text-xs uppercase tracking-wider"
+              style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 2fr' }}
             >
-              <span>Name</span><span>Created</span><span>Link</span><span>Delete</span><span>Usage / Limit</span>
+              <span>Name</span><span>Created</span><span>Link</span><span>Delete</span><span>Resolution / Time</span><span>Usage / Limit</span>
             </div>
 
             {rooms.length === 0 ? (
@@ -221,8 +293,8 @@ export default function Dashboard() {
               rooms.map((room) => (
                 <div
                   key={room.id}
-                  className="grid gap-4 px-6 py-4 border-b border-[#e8e0f5] last:border-0 items-center hover:bg-[#f5f0ff] transition-colors"
-                  style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 2fr' }}
+                  className="grid gap-3 px-6 py-4 border-b border-[#e8e0f5] last:border-0 items-center hover:bg-[#f5f0ff] transition-colors"
+                  style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 2fr' }}
                 >
                   <span className="text-gray-900 font-medium truncate">{room.name}</span>
                   <span className="text-gray-500 text-sm">{timeAgo(room.createdAt)}</span>
@@ -238,6 +310,22 @@ export default function Dashboard() {
                   >
                     Delete
                   </button>
+
+                  {/* Resolution tier + session time */}
+                  <div className="flex flex-col gap-1">
+                    {room.resolutionTier ? (
+                      <>
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold w-fit ${TIER_COLOR[room.resolutionTier]}`}>
+                          {TIER_LABEL[room.resolutionTier]}
+                          {room.resolutionWidth ? ` ${room.resolutionWidth}×${room.resolutionHeight}` : ''}
+                        </span>
+                        <span className="text-gray-400 text-xs font-mono">{fmtSeconds(room.sessionSeconds)}</span>
+                      </>
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
+                    )}
+                  </div>
+
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="flex-1 min-w-0">
                       <UsageBar bytesUsed={room.bytesUsed} bytesLimit={room.bytesLimit} />

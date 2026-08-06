@@ -100,19 +100,90 @@ app.delete('/api/rooms/:id', verifyToken, (req, res) => {
   res.json({ success: true });
 });
 
-// Room presence tracking (no WebRTC signaling — Agora handles media)
+// Agora usage summary — monthly participant-minutes tracked in memory
+app.get('/api/usage', verifyToken, (req, res) => {
+  const curMonth = new Date().toISOString().slice(0, 7);
+  if (monthlyStats.month !== curMonth) monthlyStats = freshMonthlyStats();
+
+  const tiers = monthlyStats.tiers;
+  const totalMinutes = Object.values(tiers).reduce((a, b) => a + b, 0);
+  const remainingFree = Math.max(0, FREE_TIER_MINUTES - totalMinutes);
+  const estimatedCost = Object.entries(tiers).reduce((sum, [tier, mins]) => {
+    if (mins <= 0) return sum;
+    return sum + (mins / 1000) * (TIER_PRICE[tier] || 0);
+  }, 0);
+
+  // Live session seconds: add time since sender connected for active rooms
+  const rooms = getRooms();
+  const liveSeconds = rooms.reduce((acc, r) => {
+    if (!r.senderConnectedAt) return acc;
+    return acc + Math.round((Date.now() - r.senderConnectedAt) / 1000);
+  }, 0);
+
+  res.json({
+    month: curMonth,
+    tiers,
+    totalMinutes: Math.round(totalMinutes),
+    remainingFree: Math.round(remainingFree),
+    freeTierLimit: FREE_TIER_MINUTES,
+    estimatedCostUSD: parseFloat(estimatedCost.toFixed(4)),
+    liveSessionSeconds: liveSeconds,
+    note: 'In-memory — resets on server restart. For authoritative data use Agora Console.',
+  });
+});
+
+// ── Agora resolution tier helper ──────────────────────────────────────────────
+// Tiers match Agora pricing: https://www.agora.io/en/pricing/video-calling/
+function resolutionTier(w, h) {
+  const px = (w || 0) * (h || 0);
+  if (!px)          return 'audio';
+  if (px <= 921600) return 'hd';       // ≤ 1280×720
+  if (px <= 2073600) return 'full-hd'; // ≤ 1920×1080
+  if (px <= 3686400) return '2k';      // ≤ 2560×1440
+  return '2k+';
+}
+
+// ── Monthly in-memory stats (resets when server restarts) ─────────────────────
+const TIER_PRICE = { audio: 0.99, hd: 3.99, 'full-hd': 8.99, '2k': 15.99, '2k+': 35.99 };
+const FREE_TIER_MINUTES = 10000;
+
+function freshMonthlyStats() {
+  return { month: new Date().toISOString().slice(0, 7), tiers: { audio: 0, hd: 0, 'full-hd': 0, '2k': 0, '2k+': 0 } };
+}
+let monthlyStats = freshMonthlyStats();
+
+// ── Room presence tracking (no WebRTC signaling — Agora handles media) ─────────
 const roomSockets = {};
 
 io.on('connection', (socket) => {
   console.log(`[socket] connected: ${socket.id}`);
 
-  // Approximate bandwidth tracking from Agora stats reported by client
-  socket.on('webrtc-stats', ({ roomId, deltaBytes }) => {
-    if (roomId && deltaBytes > 0) {
-      updateRoom(roomId, {
-        bytesUsed: (getRoom(roomId)?.bytesUsed || 0) + deltaBytes,
-      });
+  // Agora stats: bandwidth + resolution reported by client every 5 s
+  socket.on('webrtc-stats', ({ roomId, deltaBytes, width, height, role }) => {
+    const room = getRoom(roomId);
+    if (!room) return;
+
+    // Reset monthly stats if calendar month changed
+    const curMonth = new Date().toISOString().slice(0, 7);
+    if (monthlyStats.month !== curMonth) monthlyStats = freshMonthlyStats();
+
+    const updates = {};
+    if (deltaBytes > 0) updates.bytesUsed = (room.bytesUsed || 0) + deltaBytes;
+
+    // Resolution comes from the sender (has the camera)
+    if (role === 'sender' && width && height) {
+      const tier = resolutionTier(width, height);
+      updates.resolutionTier   = tier;
+      updates.resolutionWidth  = width;
+      updates.resolutionHeight = height;
     }
+
+    updateRoom(roomId, updates);
+
+    // Monthly participant-minutes: each 5-second report = 5/60 min per participant
+    const deltaMin = 5 / 60;
+    const tier = resolutionTier(width, height);
+    monthlyStats.tiers[tier] = (monthlyStats.tiers[tier] || 0) + deltaMin;
   });
 
   socket.on('join-room', ({ roomId, role, password }) => {
@@ -168,7 +239,9 @@ io.on('connection', (socket) => {
 
     slots[role] = socket.id;
     socket.join(roomId);
-    updateRoom(roomId, { [`${role}Joined`]: true });
+    const joinUpdates = { [`${role}Joined`]: true };
+    if (role === 'sender') joinUpdates.senderConnectedAt = Date.now();
+    updateRoom(roomId, joinUpdates);
   });
 
   function clearSocketFromRooms(socketId) {
@@ -183,7 +256,15 @@ io.on('connection', (socket) => {
         console.log(`[socket] participant2 left room ${roomId}`);
       } else if (slots.sender === socketId) {
         slots.sender = null;
-        updateRoom(roomId, { senderJoined: false });
+        const room = getRoom(roomId);
+        const extraSecs = room?.senderConnectedAt
+          ? Math.round((Date.now() - room.senderConnectedAt) / 1000)
+          : 0;
+        updateRoom(roomId, {
+          senderJoined: false,
+          senderConnectedAt: null,
+          sessionSeconds: (room?.sessionSeconds || 0) + extraSecs,
+        });
         if (slots.receiver) io.to(slots.receiver).emit('peer-disconnected', { role: 'sender' });
         console.log(`[socket] sender left room ${roomId}`);
       } else if (slots.receiver === socketId) {

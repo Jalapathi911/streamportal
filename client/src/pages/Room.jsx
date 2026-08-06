@@ -78,7 +78,8 @@ export default function Room() {
   useEffect(() => {
     apiFetch(`/api/rooms/${roomId}`)
       .then((res) => { if (!res.ok) { setNotFound(true); return null; } return res.json(); })
-      .then((data) => { if (data) setRoom(data); });
+      .then((data) => { if (data) setRoom(data); })
+      .catch(() => setNotFound(true));
 
     socket.on('role-taken', ({ role: takenRole }) => {
       if (takenRole === 'participant') {

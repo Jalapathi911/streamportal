@@ -12,6 +12,11 @@ function createRoom(name, bytesLimit = 0) {
     receiverJoined: false,
     bytesUsed: 0,
     bytesLimit: Math.max(0, Number(bytesLimit) || 0),
+    sessionSeconds: 0,
+    resolutionTier: null,
+    resolutionWidth: 0,
+    resolutionHeight: 0,
+    senderConnectedAt: null,
   };
   rooms.set(id, room);
   return room;

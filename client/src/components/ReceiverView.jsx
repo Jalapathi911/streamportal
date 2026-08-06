@@ -224,6 +224,11 @@ export default function ReceiverView({ roomId, onLeave }) {
           <GearIcon />
         </button>
 
+        {/* Holobox logo — top center */}
+        <div className="absolute top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
+          <img src="/HOLOBOX-LOGO.png" alt="Holobox 911" className="h-8 object-contain drop-shadow-lg" />
+        </div>
+
         {/* Connection dot */}
         <div
           className="absolute bottom-3 left-3 z-10"
