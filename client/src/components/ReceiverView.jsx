@@ -61,7 +61,7 @@ export default function ReceiverView({ roomId, onLeave }) {
   const [showControls,       setShowControls]       = useState(true);
   const [flipped,            setFlipped]            = useState(false);
   const [showSettings,       setShowSettings]       = useState(false);
-  const [overlayMode,        setOverlayMode]        = useState('none');
+  const [overlayMode,        setOverlayMode]        = useState('logo');
 
   // Acquire own camera so spectators can see the viewer's feed
   useEffect(() => {

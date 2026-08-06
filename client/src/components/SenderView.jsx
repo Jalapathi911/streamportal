@@ -85,7 +85,7 @@ export default function SenderView({ roomId, onLeave }) {
   const [showSettings,    setShowSettings]    = useState(false);
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewFlipped,  setPreviewFlipped]  = useState(false);
-  const [overlayMode,     setOverlayMode]     = useState('none');
+  const [overlayMode,     setOverlayMode]     = useState('logo');
   const localVideoRef  = useRef(null);
   const selectedCamera = useRef(null);
   const selectedMic    = useRef(null);
