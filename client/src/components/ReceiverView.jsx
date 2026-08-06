@@ -240,8 +240,12 @@ export default function ReceiverView({ roomId, onLeave }) {
 
         {/* Full-screen overlay (sender-controlled) */}
         {overlayMode === 'fullscreen' && (
-          <div className="absolute inset-0 z-10 pointer-events-none">
-            <img src="/HOLOBOX-OVERLAY.png" alt="Overlay" className="w-full h-full" />
+          <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+            <img
+              src="/HOLOBOX-OVERLAY.png"
+              alt="Overlay"
+              style={{ width: '95%', height: '95%', objectFit: 'contain' }}
+            />
           </div>
         )}
 
