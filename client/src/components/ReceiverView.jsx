@@ -61,6 +61,7 @@ export default function ReceiverView({ roomId, onLeave }) {
   const [showControls,       setShowControls]       = useState(true);
   const [flipped,            setFlipped]            = useState(false);
   const [showSettings,       setShowSettings]       = useState(false);
+  const [overlayMode,        setOverlayMode]        = useState('none');
 
   // Acquire own camera so spectators can see the viewer's feed
   useEffect(() => {
@@ -93,6 +94,12 @@ export default function ReceiverView({ roomId, onLeave }) {
     const h = ({ role }) => { if (role === 'sender') setSenderDisconnected(true); };
     socket.on('peer-disconnected', h);
     return () => socket.off('peer-disconnected', h);
+  }, []);
+
+  useEffect(() => {
+    const h = ({ mode }) => setOverlayMode(mode);
+    socket.on('set-overlay', h);
+    return () => socket.off('set-overlay', h);
   }, []);
 
   function handleSpeakerMute() {
@@ -224,10 +231,19 @@ export default function ReceiverView({ roomId, onLeave }) {
           <GearIcon />
         </button>
 
-        {/* Holobox logo — top center */}
-        <div className="absolute top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
-          <img src="/HOLOBOX-LOGO.png" alt="Holobox 911" className="h-16 object-contain drop-shadow-lg" />
-        </div>
+        {/* Logo overlay — top center (sender-controlled) */}
+        {overlayMode === 'logo' && (
+          <div className="absolute top-3 left-0 right-0 flex justify-center z-10 pointer-events-none">
+            <img src="/HOLOBOX-LOGO.png" alt="Holobox 911" className="h-16 object-contain drop-shadow-lg" />
+          </div>
+        )}
+
+        {/* Full-screen overlay (sender-controlled) */}
+        {overlayMode === 'fullscreen' && (
+          <div className="absolute inset-0 z-10 pointer-events-none">
+            <img src="/HOLOBOX-OVERLAY.png" alt="Overlay" className="w-full h-full object-cover" />
+          </div>
+        )}
 
         {/* Connection dot */}
         <div

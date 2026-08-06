@@ -44,6 +44,7 @@ function createRoom(name, bytesLimit = 0) {
     resolutionWidth: 0,
     resolutionHeight: 0,
     senderConnectedAt: null,
+    overlayMode: 'none',
   };
   rooms.set(id, room);
   persist();

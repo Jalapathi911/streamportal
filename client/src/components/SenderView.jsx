@@ -85,6 +85,7 @@ export default function SenderView({ roomId, onLeave }) {
   const [showSettings,    setShowSettings]    = useState(false);
   const [previewRotation, setPreviewRotation] = useState(0);
   const [previewFlipped,  setPreviewFlipped]  = useState(false);
+  const [overlayMode,     setOverlayMode]     = useState('none');
   const localVideoRef  = useRef(null);
   const selectedCamera = useRef(null);
   const selectedMic    = useRef(null);
@@ -260,6 +261,33 @@ export default function SenderView({ roomId, onLeave }) {
                 >
                   ⇄ Mirror / Flip {previewFlipped ? '(ON)' : '(OFF)'}
                 </button>
+              </div>
+
+              {/* Viewer Overlay */}
+              <div className="pt-5 border-t border-[#e8e0f5]">
+                <p className="text-[#7c3aed] text-xs font-semibold mb-1">Viewer Overlay</p>
+                <p className="text-gray-400 text-xs mb-3">Controls what appears on the viewer's screen</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {[['none', 'Off'], ['logo', 'Logo'], ['fullscreen', 'Full Screen']].map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        setOverlayMode(mode);
+                        socket.emit('set-overlay', { roomId, mode });
+                      }}
+                      className={`py-2 rounded-lg text-xs font-semibold transition-colors border ${
+                        overlayMode === mode
+                          ? 'bg-[#7c3aed] border-[#7c3aed] text-white'
+                          : 'bg-[#f0ebff] border-[#e8e0f5] text-gray-500 hover:border-[#7c3aed] hover:text-gray-900'
+                      }`}
+                    >{label}</button>
+                  ))}
+                </div>
+                {overlayMode !== 'none' && (
+                  <p className="mt-2 text-[#7c3aed] text-xs font-semibold">
+                    {overlayMode === 'logo' ? '✓ Logo showing on viewer' : '✓ Full screen overlay on viewer'}
+                  </p>
+                )}
               </div>
 
               {/* Recording */}

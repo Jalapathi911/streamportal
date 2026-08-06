@@ -49,7 +49,7 @@ const MicOffIcon = () => (
 
 const FEED_LABELS = ['Streamer', 'Viewer'];
 
-function RemoteVideoTile({ videoTrack, uid, label, audioMuted, onToggleAudio }) {
+function RemoteVideoTile({ videoTrack, uid, label, audioMuted, onToggleAudio, flipped }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -60,7 +60,7 @@ function RemoteVideoTile({ videoTrack, uid, label, audioMuted, onToggleAudio }) 
 
   return (
     <div className="relative flex-1 bg-[#141414] rounded-2xl overflow-hidden border border-[#e8e0f5]" style={{ minHeight: '260px' }}>
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0" style={flipped ? { transform: 'scaleX(-1)' } : {}} />
 
       {!videoTrack && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -201,6 +201,7 @@ export default function SpectatorView({ roomId, onLeave }) {
               label={FEED_LABELS[i] || `Feed ${i + 1}`}
               audioMuted={!!audioMuted[user.uid]}
               onToggleAudio={muteUserAudio}
+              flipped={i === 1}
             />
           ))
         )}

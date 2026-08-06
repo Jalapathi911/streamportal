@@ -283,6 +283,14 @@ io.on('connection', (socket) => {
     }
   }
 
+  // Overlay control — sender sets overlay mode, relayed to receiver
+  socket.on('set-overlay', ({ roomId, mode }) => {
+    const slots = roomSockets[roomId];
+    if (!slots) return;
+    updateRoom(roomId, { overlayMode: mode });
+    if (slots.receiver) io.to(slots.receiver).emit('set-overlay', { mode });
+  });
+
   // Admin remote-mute relay — only spectators can send this
   socket.on('admin-control', ({ roomId, target, type, muted }) => {
     const slots = roomSockets[roomId];
