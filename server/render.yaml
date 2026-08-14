@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: streamportal-server
+    env: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    envVars:
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: AdminView_PASSWORD
+        sync: false
+      - key: AGORA_APP_ID
+        sync: false
+      - key: AGORA_APP_CERTIFICATE
+        sync: false
+      - key: JWT_SECRET
+        sync: false
